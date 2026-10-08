@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Sidebar } from './components/layout/Sidebar';
-import { TopBar } from './components/layout/TopBar';
-import { KpiCard } from './components/dashboard/KpiCard';
+import { Navbar } from './components/layout/Navbar';
+import { JarvisDesignHub } from './components/dashboard/JarvisDesignHub';
+import { ChatBoxTerminal } from './components/chat/ChatBoxTerminal';
 import { DocumentProcessingPanel } from './components/dashboard/DocumentProcessingPanel';
 import { RecentIntelligence } from './components/dashboard/RecentIntelligence';
 import { DocumentSummary } from './components/dashboard/DocumentSummary';
 import { KnowledgeGraphMini } from './components/dashboard/KnowledgeGraphMini';
 import { TimelineMini } from './components/dashboard/TimelineMini';
-import { NexusHudPanel } from './components/hud/NexusHudPanel';
 import { BlackHoleCursor, CursorMode } from './components/cursor/BlackHoleCursor';
 import { AntigravityScene } from './components/background/AntigravityScene';
 import { EvidenceDrawer } from './components/modals/EvidenceDrawer';
@@ -15,18 +14,12 @@ import { UploadModal } from './components/modals/UploadModal';
 import { CommandPalette } from './components/modals/CommandPalette';
 import { KnowledgeGraphModal } from './components/modals/KnowledgeGraphModal';
 import { nexusData } from './data/demoData';
-import {
-  FileText,
-  Share2,
-  AlertTriangle,
-  HelpCircle,
-  Sparkles
-} from 'lucide-react';
+import { Sparkles, Calendar } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export function App() {
-  const [activeNav, setActiveNav] = useState('overview');
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [isDark, setIsDark] = useState(true);
   const [cursorMode, setCursorMode] = useState<CursorMode>('NORMAL');
 
   // Modals & Drawers state
@@ -56,10 +49,9 @@ export function App() {
     setDocCount(prev => prev + files.length);
     setCursorMode('SUCCESS');
 
-    // Trigger subtle celebratory particle burst
     try {
       confetti({
-        particleCount: 30,
+        particleCount: 35,
         spread: 60,
         origin: { y: 0.6 },
         colors: ['#C9FF3D', '#79DF9B', '#FFFFFF']
@@ -81,20 +73,11 @@ export function App() {
     setEvidenceOpen(true);
   };
 
-  const handleAskQuestion = (query: string) => {
-    setCursorMode('SEARCH');
-    setTimeout(() => {
-      handleOpenEvidence(nexusData.recentIntelligence[0]);
-    }, 1200);
-  };
-
   const handleActionSelect = (type: string, payload?: any) => {
     if (type === 'evidence') {
       handleOpenEvidence();
     } else if (type === 'graph') {
       setGraphModalOpen(true);
-    } else if (type === 'qa') {
-      handleAskQuestion(payload?.query || '');
     } else if (type === 'timeline') {
       setToastMessage('Navigated to Chronological Audit Timeline.');
       setTimeout(() => setToastMessage(null), 3000);
@@ -102,35 +85,30 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0D0F0E] text-[#F5F7F5] flex overflow-x-hidden font-sans relative selection:bg-[#C9FF3D] selection:text-[#0D0F0E]">
+    <div
+      className={`min-h-screen text-[#F5F7F5] flex flex-col font-sans relative selection:bg-[#C9FF3D] selection:text-[#0D0F0E] transition-colors duration-300 ${
+        isDark ? 'bg-[#0D0F0E]' : 'bg-[#121614]'
+      }`}
+    >
       {/* 1. Miniature Gravitational Black Hole Cursor */}
       <BlackHoleCursor mode={cursorMode} />
 
       {/* 2. Three.js 3D Antigravity Information Field Background */}
       <AntigravityScene isProcessing={cursorMode === 'PROCESSING'} />
 
-      {/* 3. Confirmation Toast Banner */}
-      {toastMessage && (
-        <div className="fixed top-6 right-6 z-50 p-4 rounded-2xl bg-[#171A18]/95 border border-[#C9FF3D]/40 text-[#F5F7F5] flex items-center space-x-3 text-xs font-mono shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-top-4">
-          <div className="w-6 h-6 rounded-lg bg-[#C9FF3D]/20 text-[#C9FF3D] flex items-center justify-center flex-shrink-0">
-            <Sparkles className="w-3.5 h-3.5" />
-          </div>
-          <span>{toastMessage}</span>
-        </div>
-      )}
-
-      {/* 4. Left Sidebar */}
-      <Sidebar
-        activeTab={activeNav}
+      {/* 3. Top Header / Navbar (as sketched: [Icon] NEXUS AI | Home Documents Intelligence Conflicts Missing data... | (dark/light) | 👤 | 🔍 ˅) */}
+      <Navbar
+        activeTab={activeTab}
         setActiveTab={(tab) => {
-          setActiveNav(tab);
+          setActiveTab(tab);
           if (tab === 'evidence') handleOpenEvidence();
           if (tab === 'knowledge-graph') setGraphModalOpen(true);
           if (tab === 'documents') setUploadOpen(true);
         }}
+        isDark={isDark}
+        setIsDark={setIsDark}
+        onOpenSearch={() => setCommandPaletteOpen(true)}
         onOpenUpload={() => setUploadOpen(true)}
-        collapsed={sidebarCollapsed}
-        setCollapsed={setSidebarCollapsed}
         counts={{
           documents: docCount,
           intelligence: 3,
@@ -139,100 +117,95 @@ export function App() {
         }}
       />
 
-      {/* 5. Main Center Dashboard & Right AI HUD */}
-      <div className="flex-1 min-w-0 flex flex-col lg:flex-row h-screen overflow-y-auto z-10">
-        {/* Center Main Intelligence Column */}
-        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-7 space-y-6 max-w-7xl">
-          {/* Top Search Bar & Hero Header */}
-          <TopBar
-            onSearchOpen={() => setCommandPaletteOpen(true)}
-            onNotificationsOpen={() => handleOpenEvidence()}
-          />
+      {/* 4. Confirmation Toast Banner */}
+      {toastMessage && (
+        <div className="fixed top-20 right-6 z-50 p-4 rounded-2xl bg-[#171A18]/95 border border-[#C9FF3D]/40 text-[#F5F7F5] flex items-center space-x-3 text-xs font-mono shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-top-4">
+          <div className="w-6 h-6 rounded-lg bg-[#C9FF3D]/20 text-[#C9FF3D] flex items-center justify-center flex-shrink-0">
+            <Sparkles className="w-3.5 h-3.5" />
+          </div>
+          <span>{toastMessage}</span>
+        </div>
+      )}
 
-          {/* 4 KPI Animated Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <KpiCard
-              label="Documents"
-              value={docCount}
-              change="+6 today"
-              icon={<FileText className="w-4 h-4 text-[#C9FF3D]" />}
-              iconBg="rgba(201, 255, 61, 0.12)"
-              iconColor="#C9FF3D"
-              onClick={() => setUploadOpen(true)}
-            />
+      {/* 5. Main Content Area */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-4 space-y-6 z-10">
+        {/* Sub-header / Paragraph Section (labeled "Paragraph" in sketch) */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#F5F7F5] font-sans">
+              Good morning, <span className="text-[#C9FF3D] font-mono drop-shadow-[0_0_15px_rgba(201,255,61,0.35)]">Team</span>
+            </h1>
+            <p className="text-xs sm:text-sm text-[#8F9691] mt-1 font-sans max-w-3xl leading-relaxed">
+              Here's what <span className="text-[#F5F7F5] font-semibold">NEXUS</span> discovered from your documents. 6 multi-format files analyzed with 7 detected conflicts, 4 missing requirements, and 186 relationships mapped across primary sources.
+            </p>
+          </div>
 
-            <KpiCard
-              label="Relationships"
-              value={186}
-              change="+32 today"
-              icon={<Share2 className="w-4 h-4 text-[#79DF9B]" />}
-              iconBg="rgba(121, 223, 155, 0.12)"
-              iconColor="#79DF9B"
-              onClick={() => setGraphModalOpen(true)}
-            />
+          <div className="flex items-center space-x-2 px-3.5 py-1.5 rounded-xl bg-[#171A18]/80 border border-[#292D2B] text-xs font-mono text-[#8F9691] self-start sm:self-auto flex-shrink-0">
+            <Calendar className="w-3.5 h-3.5 text-[#C9FF3D]" />
+            <span>Oct 8, 2026</span>
+            <span className="text-[#292D2B]">|</span>
+            <span className="text-[#F5F7F5]">09:24 AM</span>
+          </div>
+        </div>
 
-            <KpiCard
-              label="Conflicts"
-              value={7}
-              criticalText="2 critical"
-              icon={<AlertTriangle className="w-4 h-4 text-[#FF7777]" />}
-              iconBg="rgba(255, 119, 119, 0.12)"
-              iconColor="#FF7777"
-              onClick={() => handleOpenEvidence()}
-            />
-
-            <KpiCard
-              label="Missing Data"
-              value={4}
-              criticalText="1 critical"
-              icon={<HelpCircle className="w-4 h-4 text-[#FFBD59]" />}
-              iconBg="rgba(255, 189, 89, 0.12)"
-              iconColor="#FFBD59"
-              onClick={() => handleOpenEvidence()}
+        {/* 6. The Two Core Positioned Focal Blocks (Matching the exact sketch layout!) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+          {/* Block A: Chat Box with "+ upload Document" button inside it (5 cols) */}
+          <div className="lg:col-span-5 flex flex-col">
+            <ChatBoxTerminal
+              onOpenUpload={() => setUploadOpen(true)}
+              onOpenEvidence={handleOpenEvidence}
             />
           </div>
 
-          {/* Document Processing Hero Panel with Holographic Core */}
-          <DocumentProcessingPanel
-            onExplorePipeline={() => setUploadOpen(true)}
-          />
-
-          {/* Middle Row: Recent Intelligence & Document Summary */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            <RecentIntelligence
-              onSelectItem={(item) => handleOpenEvidence(item)}
-              onViewAll={() => handleOpenEvidence()}
-            />
-
-            <DocumentSummary
-              onViewAll={() => setUploadOpen(true)}
-              onSelectDocument={() => setUploadOpen(true)}
+          {/* Block B: Jarvis Design Central Orb with 4 radiating satellite arrows (7 cols) */}
+          <div className="lg:col-span-7 flex flex-col">
+            <JarvisDesignHub
+              onOpenDocuments={() => setUploadOpen(true)}
+              onOpenRelationships={() => setGraphModalOpen(true)}
+              onOpenConflicts={handleOpenEvidence}
+              onOpenMissing={handleOpenEvidence}
+              counts={{
+                documents: docCount,
+                relationships: 186,
+                conflicts: 7,
+                missingData: 4
+              }}
             />
           </div>
+        </div>
 
-          {/* Bottom Row: Knowledge Graph & Timeline Mini Previews */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 pb-6">
-            <KnowledgeGraphMini
-              onOpenFullGraph={() => setGraphModalOpen(true)}
-            />
+        {/* 7. Document Processing Hero Panel (File flow, active pipeline, 78% progress bar) */}
+        <DocumentProcessingPanel
+          onExplorePipeline={() => setUploadOpen(true)}
+        />
 
-            <TimelineMini
-              onOpenFullTimeline={() => handleOpenEvidence()}
-            />
-          </div>
-        </main>
-
-        {/* Right Column: Holographic NEXUS AI HUD Panel */}
-        <aside className="p-4 sm:p-6 lg:p-7 lg:pl-0 border-t lg:border-t-0 lg:border-l border-[#292D2B] bg-[#0D0F0E]/70 flex-shrink-0">
-          <NexusHudPanel
-            onAskQuestion={handleAskQuestion}
-            onOpenEvidence={() => handleOpenEvidence()}
-            onOpenInsight={(insight) => handleOpenEvidence()}
+        {/* 8. Middle Row: Recent Intelligence & Document Summary */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <RecentIntelligence
+            onSelectItem={(item) => handleOpenEvidence(item)}
+            onViewAll={() => handleOpenEvidence()}
           />
-        </aside>
-      </div>
 
-      {/* 6. Modals & Drawers */}
+          <DocumentSummary
+            onViewAll={() => setUploadOpen(true)}
+            onSelectDocument={() => setUploadOpen(true)}
+          />
+        </div>
+
+        {/* 9. Bottom Row: Knowledge Graph & Timeline Mini Previews */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-8">
+          <KnowledgeGraphMini
+            onOpenFullGraph={() => setGraphModalOpen(true)}
+          />
+
+          <TimelineMini
+            onOpenFullTimeline={() => handleOpenEvidence()}
+          />
+        </div>
+      </main>
+
+      {/* 10. Modals & Drawers */}
       <EvidenceDrawer
         isOpen={evidenceOpen}
         onClose={() => {
