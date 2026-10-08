@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/layout/Navbar';
-import { JarvisDesignHub } from './components/dashboard/JarvisDesignHub';
 import { ChatBoxTerminal } from './components/chat/ChatBoxTerminal';
 import { DocumentProcessingPanel } from './components/dashboard/DocumentProcessingPanel';
 import { RecentIntelligence } from './components/dashboard/RecentIntelligence';
 import { DocumentSummary } from './components/dashboard/DocumentSummary';
-import { KnowledgeGraphMini } from './components/dashboard/KnowledgeGraphMini';
-import { TimelineMini } from './components/dashboard/TimelineMini';
 import { BlackHoleCursor, CursorMode } from './components/cursor/BlackHoleCursor';
 import { AntigravityScene } from './components/background/AntigravityScene';
 import { EvidenceDrawer } from './components/modals/EvidenceDrawer';
@@ -73,14 +70,13 @@ export function App() {
     setEvidenceOpen(true);
   };
 
-  const handleActionSelect = (type: string, payload?: any) => {
+  const handleActionSelect = (type: string) => {
     if (type === 'evidence') {
       handleOpenEvidence();
     } else if (type === 'graph') {
       setGraphModalOpen(true);
     } else if (type === 'timeline') {
-      setToastMessage('Navigated to Chronological Audit Timeline.');
-      setTimeout(() => setToastMessage(null), 3000);
+      handleOpenEvidence();
     }
   };
 
@@ -128,8 +124,8 @@ export function App() {
       )}
 
       {/* 5. Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-4 space-y-6 z-10">
-        {/* Sub-header / Paragraph Section (labeled "Paragraph" in sketch) */}
+      <main className="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 py-4 space-y-6 z-10">
+        {/* Sub-header / Paragraph Section */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
           <div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#F5F7F5] font-sans">
@@ -148,9 +144,9 @@ export function App() {
           </div>
         </div>
 
-        {/* 6. The Two Core Positioned Focal Blocks (Matching the exact sketch layout!) */}
+        {/* 6. Top Core Focal Row: Chat Terminal (left) + Document Processing (right in Jarvis place) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-          {/* Block A: Chat Box with "+ upload Document" button inside it (5 cols) */}
+          {/* Block A: Chat Terminal with embedded "+ upload Document" button (5 cols) */}
           <div className="lg:col-span-5 flex flex-col">
             <ChatBoxTerminal
               onOpenUpload={() => setUploadOpen(true)}
@@ -158,30 +154,16 @@ export function App() {
             />
           </div>
 
-          {/* Block B: Jarvis Design Central Orb with 4 radiating satellite arrows (7 cols) */}
+          {/* Block B: Document Processing Ingestion Engine in Jarvis's place (7 cols) */}
           <div className="lg:col-span-7 flex flex-col">
-            <JarvisDesignHub
-              onOpenDocuments={() => setUploadOpen(true)}
-              onOpenRelationships={() => setGraphModalOpen(true)}
-              onOpenConflicts={handleOpenEvidence}
-              onOpenMissing={handleOpenEvidence}
-              counts={{
-                documents: docCount,
-                relationships: 186,
-                conflicts: 7,
-                missingData: 4
-              }}
+            <DocumentProcessingPanel
+              onExplorePipeline={() => setUploadOpen(true)}
             />
           </div>
         </div>
 
-        {/* 7. Document Processing Hero Panel (File flow, active pipeline, 78% progress bar) */}
-        <DocumentProcessingPanel
-          onExplorePipeline={() => setUploadOpen(true)}
-        />
-
-        {/* 8. Middle Row: Recent Intelligence & Document Summary */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 7. Bottom Section: Recent Intelligence & Document Summary (Expanded in Breadth as Wide Rectangles) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-8 items-stretch">
           <RecentIntelligence
             onSelectItem={(item) => handleOpenEvidence(item)}
             onViewAll={() => handleOpenEvidence()}
@@ -192,20 +174,9 @@ export function App() {
             onSelectDocument={() => setUploadOpen(true)}
           />
         </div>
-
-        {/* 9. Bottom Row: Knowledge Graph & Timeline Mini Previews */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-8">
-          <KnowledgeGraphMini
-            onOpenFullGraph={() => setGraphModalOpen(true)}
-          />
-
-          <TimelineMini
-            onOpenFullTimeline={() => handleOpenEvidence()}
-          />
-        </div>
       </main>
 
-      {/* 10. Modals & Drawers */}
+      {/* 8. Modals & Drawers */}
       <EvidenceDrawer
         isOpen={evidenceOpen}
         onClose={() => {
