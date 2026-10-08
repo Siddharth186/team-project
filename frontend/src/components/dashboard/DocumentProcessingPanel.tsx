@@ -14,13 +14,50 @@ import { nexusData } from '../../data/demoData';
 
 interface DocumentProcessingPanelProps {
   onExplorePipeline?: () => void;
+  onFilterFileType?: (type: string) => void;
 }
 
 export const DocumentProcessingPanel: React.FC<DocumentProcessingPanelProps> = ({
-  onExplorePipeline
+  onExplorePipeline,
+  onFilterFileType
 }) => {
   const [aiState, setAiState] = useState<AIState>('PROCESSING');
   const [progress, setProgress] = useState(78);
+  const [activeFeedback, setActiveFeedback] = useState<string | null>(null);
+
+  const engineDetails: Record<string, string> = {
+    c1: "Text Extraction: pdfplumber v0.11 + python-docx tabular extractor running with 99.8% precision.",
+    c2: "OCR Processing: Tesseract 5.3 + LayoutLMv3 multi-column scanned document engine active.",
+    c3: "Entity Recognition: SpaCy en_core_web_trf + financial regex entity resolver active.",
+    c4: "Relationship Mapping: Bi-directional bipartite fact constellation graph projection active.",
+    c5: "Cross-Document Analysis: Deterministic fact consistency and temporal anomaly validator active."
+  };
+
+  const handleCycleState = () => {
+    const states: AIState[] = ['PROCESSING', 'ANALYZING', 'CONNECTING', 'VALIDATING', 'COMPLETE'];
+    const nextIdx = (states.indexOf(aiState) + 1) % states.length;
+    const nextState = states[nextIdx];
+    setAiState(nextState);
+    if (nextState === 'COMPLETE') setProgress(100);
+    else if (nextState === 'VALIDATING') setProgress(94);
+    else if (nextState === 'CONNECTING') setProgress(88);
+    else if (nextState === 'ANALYZING') setProgress(82);
+    else setProgress(78);
+    setActiveFeedback(`Engine state transitioned to ${nextState}`);
+    setTimeout(() => setActiveFeedback(null), 3000);
+  };
+
+  const handleEngineClick = (id: string, label: string) => {
+    setActiveFeedback(engineDetails[id] || `${label} is running at optimal throughput.`);
+    setTimeout(() => setActiveFeedback(null), 4000);
+  };
+
+  const handleQueueClick = (type: string, count: number) => {
+    if (onFilterFileType) onFilterFileType(type);
+    else if (onExplorePipeline) onExplorePipeline();
+    setActiveFeedback(`Inspecting ${count} ${type} file(s) in active multimodal queue.`);
+    setTimeout(() => setActiveFeedback(null), 3000);
+  };
 
   const fileIcons: Record<string, React.ReactNode> = {
     PDF: <FileText className="w-3.5 h-3.5 text-[#C9FF3D]" />,
@@ -61,11 +98,26 @@ export const DocumentProcessingPanel: React.FC<DocumentProcessingPanelProps> = (
         </div>
 
         <div className="flex items-center space-x-2">
-          <span className="px-2.5 py-1 rounded-full bg-[#171A18] border border-[#292D2B] text-[10px] font-mono text-[#8F9691] uppercase tracking-wider">
-            State: <strong className="text-[#C9FF3D]">{aiState}</strong>
-          </span>
+          <button
+            type="button"
+            onClick={handleCycleState}
+            className="px-2.5 py-1 rounded-full bg-[#171A18] hover:bg-[#1D211F] border border-[#292D2B] hover:border-[#C9FF3D]/50 text-[10px] font-mono text-[#8F9691] uppercase tracking-wider transition-all cursor-pointer flex items-center space-x-1"
+            title="Click to cycle AI Engine state"
+          >
+            <span>State:</span>
+            <strong className="text-[#C9FF3D]">{aiState}</strong>
+            <span className="text-[9px] text-[#8F9691]">(click)</span>
+          </button>
         </div>
       </div>
+
+      {/* Interactive In-Panel Feedback Notice */}
+      {activeFeedback && (
+        <div className="mx-1 my-2 p-2.5 rounded-xl bg-[#C9FF3D]/10 border border-[#C9FF3D]/30 text-xs font-mono text-[#F5F7F5] flex items-center space-x-2 animate-in fade-in duration-150">
+          <Sparkles className="w-3.5 h-3.5 text-[#C9FF3D] flex-shrink-0" />
+          <span className="truncate">{activeFeedback}</span>
+        </div>
+      )}
 
       {/* Main 3-Column Visual Flow Area */}
       <div className="py-4 grid grid-cols-1 sm:grid-cols-12 gap-4 items-center relative z-10 flex-1 my-auto">
@@ -76,18 +128,23 @@ export const DocumentProcessingPanel: React.FC<DocumentProcessingPanelProps> = (
           </span>
 
           {nexusData.processing.fileTypes.map((item) => (
-            <div
+            <button
+              type="button"
               key={item.type}
-              className="flex items-center justify-between p-2 rounded-xl bg-[#171A18]/90 border border-[#292D2B] hover:border-[#C9FF3D]/40 transition-all text-xs font-mono group shadow-sm"
+              onClick={() => handleQueueClick(item.type, item.count)}
+              className="w-full flex items-center justify-between p-2 rounded-xl bg-[#171A18]/90 hover:bg-[#1D211F] border border-[#292D2B] hover:border-[#C9FF3D]/50 transition-all text-xs font-mono group shadow-sm text-left cursor-pointer"
+              title={`Click to inspect ${item.count} ${item.type} files in pipeline`}
             >
               <div className="flex items-center space-x-2">
                 {fileIcons[item.type] || <FileText className="w-3.5 h-3.5 text-[#C9FF3D]" />}
-                <span className="text-[#F5F7F5] font-medium text-[11px]">{item.type}</span>
+                <span className="text-[#F5F7F5] font-medium text-[11px] group-hover:text-[#C9FF3D] transition-colors">
+                  {item.type}
+                </span>
               </div>
               <span className="text-[#8F9691] group-hover:text-[#C9FF3D] font-bold text-[11px]">
                 {item.count}
               </span>
-            </div>
+            </button>
           ))}
         </div>
 
@@ -164,15 +221,20 @@ export const DocumentProcessingPanel: React.FC<DocumentProcessingPanelProps> = (
           </span>
 
           {nexusData.processing.checklist.map((item) => (
-            <div
+            <button
+              type="button"
               key={item.id}
-              className="flex items-center space-x-2 p-2 rounded-xl bg-[#171A18]/90 border border-[#292D2B] text-xs font-sans text-[#F5F7F5] shadow-sm"
+              onClick={() => handleEngineClick(item.id, item.label)}
+              className="w-full flex items-center space-x-2 p-2 rounded-xl bg-[#171A18]/90 hover:bg-[#1D211F] border border-[#292D2B] hover:border-[#79DF9B]/50 transition-all text-xs font-sans text-[#F5F7F5] shadow-sm text-left cursor-pointer group"
+              title={`Click to inspect telemetry for ${item.label}`}
             >
-              <div className="w-4 h-4 rounded-full bg-[#79DF9B]/20 text-[#79DF9B] flex items-center justify-center flex-shrink-0">
+              <div className="w-4 h-4 rounded-full bg-[#79DF9B]/20 text-[#79DF9B] flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
                 <CheckCircle2 className="w-3 h-3 stroke-[2.5]" />
               </div>
-              <span className="text-[11px] truncate font-medium">{item.label}</span>
-            </div>
+              <span className="text-[11px] truncate font-medium group-hover:text-[#79DF9B] transition-colors">
+                {item.label}
+              </span>
+            </button>
           ))}
         </div>
       </div>

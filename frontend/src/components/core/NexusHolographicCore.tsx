@@ -13,14 +13,6 @@ export const NexusHolographicCore: React.FC<NexusHolographicCoreProps> = ({
   size = 'md',
   showWaveform = true
 }) => {
-  const [pulse, setPulse] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setPulse(p => (p + 1) % 100);
-    }, 50);
-    return () => clearInterval(interval);
-  }, []);
 
   const dimensions = {
     sm: { width: 140, height: 140, starSize: 24 },
@@ -183,9 +175,9 @@ export const NexusHolographicCore: React.FC<NexusHolographicCoreProps> = ({
         {/* Layer 7: Central NEXUS 4-Pointed Star Icon */}
         <g
           transform="translate(100, 100)"
-          className="transition-transform duration-500"
+          className="transition-transform duration-500 animate-[pulse_3s_ease-in-out_infinite]"
           style={{
-            transform: `translate(100px, 100px) scale(${1 + Math.sin(pulse * 0.1) * 0.04})`
+            transformOrigin: "100px 100px"
           }}
         >
           {/* Glowing 4-Pointed Star */}
@@ -203,20 +195,16 @@ export const NexusHolographicCore: React.FC<NexusHolographicCoreProps> = ({
       {showWaveform && (
         <div className="flex items-center justify-center space-x-1 mt-2 h-5 w-40 overflow-hidden">
           {Array.from({ length: 22 }).map((_, i) => {
-            const height = Math.max(
-              3,
-              Math.min(
-                18,
-                Math.sin(i * 0.4 + pulse * 0.2) * 8 + 9 + (state === 'PROCESSING' ? Math.random() * 4 : 0)
-              )
-            );
+            const baseHeight = 4 + (Math.sin(i * 0.5) * 6 + 6);
             return (
               <span
                 key={i}
-                className="w-1 rounded-full transition-all duration-75"
+                className="w-1 rounded-full transition-all duration-300 animate-pulse"
                 style={{
-                  height: `${height}px`,
-                  backgroundColor: i % 4 === 0 ? accentColor : 'rgba(201, 255, 61, 0.45)'
+                  height: `${baseHeight}px`,
+                  backgroundColor: i % 4 === 0 ? accentColor : 'rgba(201, 255, 61, 0.45)',
+                  animationDelay: `${(i % 5) * 0.15}s`,
+                  animationDuration: '1.2s'
                 }}
               />
             );

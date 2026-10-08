@@ -22,6 +22,7 @@ interface NavbarProps {
   setIsDark: (dark: boolean) => void;
   onOpenSearch: () => void;
   onOpenUpload: () => void;
+  onOpenProfile?: () => void;
   counts?: {
     documents: number;
     intelligence: number;
@@ -37,6 +38,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   setIsDark,
   onOpenSearch,
   onOpenUpload,
+  onOpenProfile,
   counts = { documents: 24, intelligence: 3, conflicts: 7, missingData: 4 }
 }) => {
   const navItems = [
@@ -173,16 +175,18 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           {/* User Profile Avatar */}
-          <div
-            className={`w-8 h-8 rounded-full border flex items-center justify-center cursor-pointer transition-colors shadow-sm ${
+          <button
+            type="button"
+            onClick={onOpenProfile}
+            className={`w-8 h-8 rounded-full border flex items-center justify-center cursor-pointer transition-all shadow-sm group hover:scale-105 active:scale-95 ${
               isDark
-                ? 'bg-[#171A18] border-[#292D2B] hover:border-[#C9FF3D]/50 text-[#C9FF3D]'
+                ? 'bg-[#171A18] border-[#292D2B] hover:border-[#C9FF3D]/80 text-[#C9FF3D]'
                 : 'bg-[#FFFFFF] border-[rgba(15,81,50,0.2)] hover:border-[#0F5132] text-[#0F5132]'
             }`}
-            title="User Profile (CT)"
+            title="Lead Underwriter Profile (Officer Arjun Mehta - CT-8842-BLR)"
           >
-            <User className="w-4 h-4" />
-          </div>
+            <User className="w-4 h-4 transition-transform group-hover:scale-110" />
+          </button>
 
           {/* Search Trigger with dropdown arrow */}
           <button

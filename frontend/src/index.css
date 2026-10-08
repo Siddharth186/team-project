@@ -37,11 +37,12 @@
     transition: background-color 0.3s ease, color 0.3s ease;
   }
 
-  /* Hide default cursor on desktop when black-hole cursor is active */
-  @media (pointer: fine) {
-    body, a, button, input, [role="button"] {
-      cursor: none !important;
-    }
+  /* Hardware cursor remains visible everywhere with custom pointer styling */
+  button, a, [role="button"], .cursor-pointer {
+    cursor: pointer;
+  }
+  input, textarea {
+    cursor: text;
   }
 }
 

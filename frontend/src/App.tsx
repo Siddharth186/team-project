@@ -10,6 +10,8 @@ import { EvidenceDrawer } from './components/modals/EvidenceDrawer';
 import { UploadModal } from './components/modals/UploadModal';
 import { CommandPalette } from './components/modals/CommandPalette';
 import { KnowledgeGraphModal } from './components/modals/KnowledgeGraphModal';
+import { TimelineModal } from './components/modals/TimelineModal';
+import { ProfileModal } from './components/modals/ProfileModal';
 import { nexusData } from './data/demoData';
 import { Sparkles, Calendar } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -25,6 +27,8 @@ export function App() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [graphModalOpen, setGraphModalOpen] = useState(false);
+  const [timelineOpen, setTimelineOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   // Dynamic document counts
   const [docCount, setDocCount] = useState(nexusData.kpis.documents.value);
@@ -81,13 +85,46 @@ export function App() {
     setEvidenceOpen(true);
   };
 
-  const handleActionSelect = (type: string) => {
+  const handleActionSelect = (type: string, payload?: any) => {
     if (type === 'evidence') {
-      handleOpenEvidence();
+      handleOpenEvidence(payload);
     } else if (type === 'graph') {
       setGraphModalOpen(true);
     } else if (type === 'timeline') {
+      setTimelineOpen(true);
+    } else if (type === 'doc') {
+      setUploadOpen(true);
+    } else if (type === 'qa') {
+      const el = document.getElementById('chat-terminal-section');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handleNavTab = (tab: string) => {
+    setActiveTab(tab);
+    if (tab === 'overview') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (tab === 'documents') {
+      setUploadOpen(true);
+    } else if (tab === 'intelligence') {
+      const el = document.getElementById('recent-intelligence-section');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+      setToastMessage('Navigated to Cross-Document Recent Intelligence findings');
+      setTimeout(() => setToastMessage(null), 3000);
+    } else if (tab === 'conflicts') {
+      setSelectedEvidence(nexusData.recentIntelligence[0]);
+      setCursorMode('CONFLICT');
+      setEvidenceOpen(true);
+    } else if (tab === 'missing-data') {
+      setSelectedEvidence(nexusData.recentIntelligence[1]);
+      setCursorMode('CONFLICT');
+      setEvidenceOpen(true);
+    } else if (tab === 'evidence') {
       handleOpenEvidence();
+    } else if (tab === 'knowledge-graph') {
+      setGraphModalOpen(true);
+    } else if (tab === 'timeline') {
+      setTimelineOpen(true);
     }
   };
 
@@ -108,16 +145,12 @@ export function App() {
       {/* 3. Top Header / Navbar (as sketched: [Icon] NEXUS AI | Home Documents Intelligence Conflicts Missing data... | (dark/light) | 👤 | 🔍 ˅) */}
       <Navbar
         activeTab={activeTab}
-        setActiveTab={(tab) => {
-          setActiveTab(tab);
-          if (tab === 'evidence') handleOpenEvidence();
-          if (tab === 'knowledge-graph') setGraphModalOpen(true);
-          if (tab === 'documents') setUploadOpen(true);
-        }}
+        setActiveTab={handleNavTab}
         isDark={isDark}
         setIsDark={setIsDark}
         onOpenSearch={() => setCommandPaletteOpen(true)}
         onOpenUpload={() => setUploadOpen(true)}
+        onOpenProfile={() => setProfileOpen(true)}
         counts={{
           documents: docCount,
           intelligence: 3,
@@ -160,7 +193,7 @@ export function App() {
         {/* 6. Top Core Focal Row: Chat Terminal (left) + Document Processing (right in Jarvis place) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
           {/* Block A: Chat Terminal with embedded "+ upload Document" button (5 cols) */}
-          <div className="lg:col-span-5 flex flex-col">
+          <div id="chat-terminal-section" className="lg:col-span-5 flex flex-col">
             <ChatBoxTerminal
               onOpenUpload={() => setUploadOpen(true)}
               onOpenEvidence={handleOpenEvidence}
@@ -177,14 +210,28 @@ export function App() {
 
         {/* 7. Bottom Section: Recent Intelligence & Document Summary (Expanded in Breadth as Wide Rectangles) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-8 items-stretch">
-          <RecentIntelligence
-            onSelectItem={(item) => handleOpenEvidence(item)}
-            onViewAll={() => handleOpenEvidence()}
-          />
+          <div id="recent-intelligence-section">
+            <RecentIntelligence
+              onSelectItem={(item) => handleOpenEvidence(item)}
+              onViewAll={() => handleOpenEvidence()}
+            />
+          </div>
 
           <DocumentSummary
             onViewAll={() => setUploadOpen(true)}
-            onSelectDocument={() => setUploadOpen(true)}
+            onSelectDocument={(doc) => {
+              setSelectedEvidence({
+                title: `${doc.name} Verification Details`,
+                confidence: 96,
+                evidence: {
+                  docA: { name: doc.name, page: 1, text: `Multi-format ${doc.category || 'dossier'} verified. Checksum verified against database ledger.`, val: doc.size },
+                  docB: { name: 'Audit_Registry.pdf', page: 2, text: 'Authorized ingestion checksum matches primary record repository.', val: 'Verified' },
+                  variance: 'None (Clean Match)',
+                  reason: `Document ${doc.name} successfully passed deterministic text extraction and layout parsing.`
+                }
+              });
+              setEvidenceOpen(true);
+            }}
           />
         </div>
       </main>
@@ -217,6 +264,24 @@ export function App() {
         onInspectEvidence={() => {
           setGraphModalOpen(false);
           handleOpenEvidence();
+        }}
+      />
+
+      <TimelineModal
+        isOpen={timelineOpen}
+        onClose={() => setTimelineOpen(false)}
+        onInspectEvidence={(item) => {
+          setTimelineOpen(false);
+          handleOpenEvidence(item);
+        }}
+      />
+
+      <ProfileModal
+        isOpen={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        onExportAudit={() => {
+          setToastMessage('Exporting complete underwriter audit dossier (PDF + JSON)...');
+          setTimeout(() => setToastMessage(null), 3500);
         }}
       />
     </div>

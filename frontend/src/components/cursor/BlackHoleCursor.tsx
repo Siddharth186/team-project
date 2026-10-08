@@ -67,13 +67,13 @@ export const BlackHoleCursor: React.FC<BlackHoleCursorProps> = ({ mode = 'NORMAL
       const dx = mousePos.current.x - cursorSmoothPos.current.x;
       const dy = mousePos.current.y - cursorSmoothPos.current.y;
       
-      velocity.current = { x: dx * 0.18, y: dy * 0.18 };
+      velocity.current = { x: dx * 0.55, y: dy * 0.55 };
       cursorSmoothPos.current.x += velocity.current.x;
       cursorSmoothPos.current.y += velocity.current.y;
 
       // Speed magnitude
       const speed = Math.hypot(velocity.current.x, velocity.current.y);
-      const stretch = Math.min(1.4, 1 + speed * 0.015);
+      const stretch = Math.min(1.25, 1 + speed * 0.012);
       const angle = Math.atan2(velocity.current.y, velocity.current.x) * (180 / Math.PI);
 
       if (cursorRef.current) {
@@ -122,7 +122,7 @@ export const BlackHoleCursor: React.FC<BlackHoleCursorProps> = ({ mode = 'NORMAL
   const ringColor = getAccretionColor();
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden hidden md:block">
+    <div className="pointer-events-none fixed inset-0 z-[99999] overflow-hidden hidden md:block">
       {/* Click Gravitational Ripples */}
       {ripples.map(r => (
         <div

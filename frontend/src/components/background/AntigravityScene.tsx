@@ -35,8 +35,8 @@ export const AntigravityScene: React.FC<AntigravitySceneProps> = ({ isProcessing
     renderer.setClearColor(0x000000, 0); // Transparent background
     container.appendChild(renderer.domElement);
 
-    // 1. Floating Information Nodes & Constellation Lines
-    const nodeCount = 140;
+    // 1. Floating Information Nodes & Constellation Lines (Optimized nodeCount for silky 60fps)
+    const nodeCount = 75;
     const geometry = new THREE.BufferGeometry();
     const positions = new Float32Array(nodeCount * 3);
     const velocities: Array<{ x: number; y: number; z: number }> = [];
@@ -61,7 +61,7 @@ export const AntigravityScene: React.FC<AntigravitySceneProps> = ({ isProcessing
         z: (Math.random() - 0.5) * 0.08
       });
 
-      // 15% lime particles, rest subtle dark green/cyan
+      // 18% accent particles, rest subtle dark green/cyan
       const color = Math.random() < 0.18 ? limeColor : (Math.random() < 0.5 ? darkGreenColor : cyanColor);
       colors[i * 3] = color.r;
       colors[i * 3 + 1] = color.g;
@@ -79,7 +79,7 @@ export const AntigravityScene: React.FC<AntigravitySceneProps> = ({ isProcessing
     if (ctx) {
       const grad = ctx.createRadialGradient(8, 8, 0, 8, 8, 8);
       grad.addColorStop(0, 'rgba(255,255,255,1)');
-      grad.addColorStop(0.3, 'rgba(201,255,61,0.8)');
+      grad.addColorStop(0.3, isLight ? 'rgba(15,81,50,0.8)' : 'rgba(201,255,61,0.8)');
       grad.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, 16, 16);
@@ -91,8 +91,8 @@ export const AntigravityScene: React.FC<AntigravitySceneProps> = ({ isProcessing
       vertexColors: true,
       map: texture,
       transparent: true,
-      opacity: 0.65,
-      blending: THREE.AdditiveBlending,
+      opacity: isLight ? 0.45 : 0.65,
+      blending: isLight ? THREE.NormalBlending : THREE.AdditiveBlending,
       depthWrite: false
     });
 
@@ -101,24 +101,24 @@ export const AntigravityScene: React.FC<AntigravitySceneProps> = ({ isProcessing
 
     // Dynamic Line Connections Geometry
     const lineMaterial = new THREE.LineBasicMaterial({
-      color: 0xC9FF3D,
+      color: isLight ? 0x0F5132 : 0xC9FF3D,
       transparent: true,
-      opacity: 0.08,
-      blending: THREE.AdditiveBlending
+      opacity: isLight ? 0.05 : 0.08,
+      blending: isLight ? THREE.NormalBlending : THREE.AdditiveBlending
     });
 
     const linesGeometry = new THREE.BufferGeometry();
-    const maxLines = 180;
+    const maxLines = 100;
     const linePositions = new Float32Array(maxLines * 6);
     linesGeometry.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
     const linesMesh = new THREE.LineSegments(linesGeometry, lineMaterial);
     scene.add(linesMesh);
 
     // 2. Faint Perspective Grid on floor
-    const gridHelper = new THREE.GridHelper(600, 30, 0x292D2B, 0x141816);
+    const gridHelper = new THREE.GridHelper(600, 30, isLight ? 0xCAD8CE : 0x292D2B, isLight ? 0xE2ECE4 : 0x141816);
     gridHelper.position.y = -100;
     gridHelper.material.transparent = true;
-    gridHelper.material.opacity = 0.25;
+    gridHelper.material.opacity = isLight ? 0.15 : 0.25;
     scene.add(gridHelper);
 
     // Mouse tracking for subtle parallax
@@ -144,10 +144,15 @@ export const AntigravityScene: React.FC<AntigravitySceneProps> = ({ isProcessing
 
     // Animation Loop
     let animationFrameId: number;
-    let clock = new THREE.Clock();
+    let frameCount = 0;
 
     const animate = () => {
-      const delta = clock.getDelta();
+      if (document.hidden) {
+        animationFrameId = requestAnimationFrame(animate);
+        return;
+      }
+
+      frameCount++;
 
       if (!prefersReducedMotion) {
         // Smooth camera drift with mouse lerp
@@ -166,9 +171,9 @@ export const AntigravityScene: React.FC<AntigravitySceneProps> = ({ isProcessing
 
           // If processing, drift subtly toward center/right
           if (isProcessing) {
-            posArray[idx] += velocities[i].x * 1.8 + 0.06;
-            posArray[idx + 1] += velocities[i].y * 1.8;
-            posArray[idx + 2] += velocities[i].z * 1.8;
+            posArray[idx] += velocities[i].x * 1.5 + 0.05;
+            posArray[idx + 1] += velocities[i].y * 1.5;
+            posArray[idx + 2] += velocities[i].z * 1.5;
           } else {
             posArray[idx] += velocities[i].x;
             posArray[idx + 1] += velocities[i].y;
@@ -183,31 +188,34 @@ export const AntigravityScene: React.FC<AntigravitySceneProps> = ({ isProcessing
           if (posArray[idx + 2] > 150) posArray[idx + 2] = -150;
           if (posArray[idx + 2] < -150) posArray[idx + 2] = 150;
 
-          // Connect nearby nodes with constellation lines
-          for (let j = i + 1; j < Math.min(i + 8, nodeCount); j++) {
-            if (lineIdx < maxLines) {
-              const jIdx = j * 3;
-              const dist = Math.hypot(
-                posArray[idx] - posArray[jIdx],
-                posArray[idx + 1] - posArray[jIdx + 1],
-                posArray[idx + 2] - posArray[jIdx + 2]
-              );
+          // Connect nearby nodes with constellation lines (calculated every 2nd frame, fast squared distance)
+          if (frameCount % 2 === 0) {
+            for (let j = i + 1; j < Math.min(i + 5, nodeCount); j++) {
+              if (lineIdx < maxLines) {
+                const jIdx = j * 3;
+                const dx = posArray[idx] - posArray[jIdx];
+                const dy = posArray[idx + 1] - posArray[jIdx + 1];
+                const dz = posArray[idx + 2] - posArray[jIdx + 2];
+                const distSq = dx * dx + dy * dy + dz * dz;
 
-              if (dist < 45) {
-                linePositions[lineIdx * 6] = posArray[idx];
-                linePositions[lineIdx * 6 + 1] = posArray[idx + 1];
-                linePositions[lineIdx * 6 + 2] = posArray[idx + 2];
-                linePositions[lineIdx * 6 + 3] = posArray[jIdx];
-                linePositions[lineIdx * 6 + 4] = posArray[jIdx + 1];
-                linePositions[lineIdx * 6 + 5] = posArray[jIdx + 2];
-                lineIdx++;
+                if (distSq < 2025) { // 45 * 45
+                  linePositions[lineIdx * 6] = posArray[idx];
+                  linePositions[lineIdx * 6 + 1] = posArray[idx + 1];
+                  linePositions[lineIdx * 6 + 2] = posArray[idx + 2];
+                  linePositions[lineIdx * 6 + 3] = posArray[jIdx];
+                  linePositions[lineIdx * 6 + 4] = posArray[jIdx + 1];
+                  linePositions[lineIdx * 6 + 5] = posArray[jIdx + 2];
+                  lineIdx++;
+                }
               }
             }
           }
         }
 
         geometry.attributes.position.needsUpdate = true;
-        linesGeometry.attributes.position.needsUpdate = true;
+        if (frameCount % 2 === 0) {
+          linesGeometry.attributes.position.needsUpdate = true;
+        }
       }
 
       renderer.render(scene, camera);
