@@ -1,0 +1,22 @@
+{
+  "name": "nexus-ai-intelligence-engine",
+  "version": "1.0.0",
+  "description": "NEXUS AI Member 2: Information Intelligence Engine — Evidence-Centric Fact Normalization, Entity Resolution, Contradiction Detection, Temporal Timelines, Confidence & Evidence Aggregation",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "node --experimental-strip-types src/index.ts",
+    "test": "node --experimental-strip-types --test test/**/*.test.ts",
+    "demo": "node --experimental-strip-types src/demo.ts"
+  },
+  "keywords": [
+    "nexus-ai",
+    "fact-intelligence",
+    "entity-resolution",
+    "contradiction-detection",
+    "temporal-analysis",
+    "evidence-engine"
+  ],
+  "author": "NEXUS AI Team (Member 2)",
+  "license": "MIT"
+}
