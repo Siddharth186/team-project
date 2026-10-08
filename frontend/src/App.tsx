@@ -1,248 +1,267 @@
 import React, { useState, useEffect } from 'react';
-import { Header } from './components/Header';
-import { DashboardView } from './components/DashboardView';
-import { DocumentsView } from './components/DocumentsView';
-import { FindingsView } from './components/FindingsView';
-import { TimelineView } from './components/TimelineView';
-import { KnowledgeGraphView } from './components/KnowledgeGraphView';
-import { QAView } from './components/QAView';
-import { ReportView } from './components/ReportView';
-import { EvidenceModal } from './components/EvidenceModal';
-import { nexusApi } from './services/api';
+import { Sidebar } from './components/layout/Sidebar';
+import { TopBar } from './components/layout/TopBar';
+import { KpiCard } from './components/dashboard/KpiCard';
+import { DocumentProcessingPanel } from './components/dashboard/DocumentProcessingPanel';
+import { RecentIntelligence } from './components/dashboard/RecentIntelligence';
+import { DocumentSummary } from './components/dashboard/DocumentSummary';
+import { KnowledgeGraphMini } from './components/dashboard/KnowledgeGraphMini';
+import { TimelineMini } from './components/dashboard/TimelineMini';
+import { NexusHudPanel } from './components/hud/NexusHudPanel';
+import { BlackHoleCursor, CursorMode } from './components/cursor/BlackHoleCursor';
+import { AntigravityScene } from './components/background/AntigravityScene';
+import { EvidenceDrawer } from './components/modals/EvidenceDrawer';
+import { UploadModal } from './components/modals/UploadModal';
+import { CommandPalette } from './components/modals/CommandPalette';
+import { KnowledgeGraphModal } from './components/modals/KnowledgeGraphModal';
+import { nexusData } from './data/demoData';
 import {
-  SystemMetrics,
-  DocumentItem,
-  Finding,
-  MissingInformation,
-  TemporalNode,
-  KnowledgeGraphData,
-  CaseDecisionReport,
-  QAResponse
-} from './types/nexus';
-import { AlertCircle, RefreshCw } from 'lucide-react';
+  FileText,
+  Share2,
+  AlertTriangle,
+  HelpCircle,
+  Sparkles
+} from 'lucide-react';
+import confetti from 'canvas-confetti';
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<string>('dashboard');
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [activeNav, setActiveNav] = useState('overview');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [cursorMode, setCursorMode] = useState<CursorMode>('NORMAL');
 
-  const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
-  const [documents, setDocuments] = useState<DocumentItem[]>([]);
-  const [findings, setFindings] = useState<Finding[]>([]);
-  const [missingInfo, setMissingInfo] = useState<MissingInformation[]>([]);
-  const [timeline, setTimeline] = useState<TemporalNode[]>([]);
-  const [graphData, setGraphData] = useState<KnowledgeGraphData>({ nodes: [], edges: [] });
-  const [report, setReport] = useState<CaseDecisionReport | null>(null);
+  // Modals & Drawers state
+  const [evidenceOpen, setEvidenceOpen] = useState(false);
+  const [selectedEvidence, setSelectedEvidence] = useState<any>(null);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [graphModalOpen, setGraphModalOpen] = useState(false);
 
-  const [inspectingFinding, setInspectingFinding] = useState<Finding | null>(null);
+  // Dynamic document counts
+  const [docCount, setDocCount] = useState(nexusData.kpis.documents.value);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const loadAllData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const [
-        metricsRes,
-        docsRes,
-        findingsRes,
-        missingRes,
-        timelineRes,
-        graphRes,
-        reportRes
-      ] = await Promise.all([
-        nexusApi.getMetrics(),
-        nexusApi.getDocuments(),
-        nexusApi.getFindings(),
-        nexusApi.getMissingInfo(),
-        nexusApi.getTimeline(),
-        nexusApi.getGraph(),
-        nexusApi.getReport()
-      ]);
-
-      setMetrics(metricsRes);
-      setDocuments(docsRes);
-      setFindings(findingsRes);
-      setMissingInfo(missingRes);
-      setTimeline(timelineRes);
-      setGraphData(graphRes);
-      setReport(reportRes);
-    } catch (err: any) {
-      console.error('Failed to load NEXUS data:', err);
-      setError('Unable to connect to NEXUS Orchestration Server on port 5001. Please verify server status.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Keyboard shortcut listener for Command Palette (⌘ K / Ctrl K)
   useEffect(() => {
-    loadAllData();
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setCommandPaletteOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Poll for document progress if any document is processing
-  useEffect(() => {
-    const hasProcessing = documents.some(d => d.status === 'PROCESSING');
-    if (!hasProcessing) return;
+  const handleUploadSuccess = (files: Array<{ name: string; size: number; type: string }>) => {
+    setDocCount(prev => prev + files.length);
+    setCursorMode('SUCCESS');
 
-    const interval = setInterval(async () => {
-      try {
-        const res = await nexusApi.pollProgress();
-        setDocuments(res.documents);
-        if (res.processingRemaining === 0) {
-          // Re-fetch metrics and report once finished
-          const m = await nexusApi.getMetrics();
-          setMetrics(m);
-        }
-      } catch (e) {
-        console.error('Progress poll failed:', e);
-      }
-    }, 2000);
-
-    return () => clearInterval(interval);
-  }, [documents]);
-
-  const handleUpload = async (files: Array<{ name: string; size: number; type: string } | string>) => {
+    // Trigger subtle celebratory particle burst
     try {
-      await nexusApi.uploadDocuments(files);
-      const updatedDocs = await nexusApi.getDocuments();
-      setDocuments(updatedDocs);
-      const updatedMetrics = await nexusApi.getMetrics();
-      setMetrics(updatedMetrics);
-    } catch (e) {
-      console.error('Upload failed:', e);
+      confetti({
+        particleCount: 30,
+        spread: 60,
+        origin: { y: 0.6 },
+        colors: ['#C9FF3D', '#79DF9B', '#FFFFFF']
+      });
+    } catch {
+      // Fallback
     }
+
+    setToastMessage(`Successfully ingested ${files.length} document(s) into pipeline!`);
+    setTimeout(() => {
+      setToastMessage(null);
+      setCursorMode('NORMAL');
+    }, 4500);
   };
 
-  const handleDeleteDocument = async (id: string) => {
-    try {
-      await nexusApi.deleteDocument(id);
-      const updatedDocs = await nexusApi.getDocuments();
-      setDocuments(updatedDocs);
-      const updatedMetrics = await nexusApi.getMetrics();
-      setMetrics(updatedMetrics);
-    } catch (e) {
-      console.error('Delete failed:', e);
-    }
+  const handleOpenEvidence = (item?: any) => {
+    setSelectedEvidence(item || nexusData.recentIntelligence[0]);
+    setCursorMode('CONFLICT');
+    setEvidenceOpen(true);
   };
 
-  const handleReset = async () => {
-    try {
-      await nexusApi.resetData();
-      await loadAllData();
-    } catch (e) {
-      console.error('Reset failed:', e);
-    }
+  const handleAskQuestion = (query: string) => {
+    setCursorMode('SEARCH');
+    setTimeout(() => {
+      handleOpenEvidence(nexusData.recentIntelligence[0]);
+    }, 1200);
   };
 
-  const handleAskQuestion = async (query: string): Promise<QAResponse> => {
-    return await nexusApi.askQuestion(query);
+  const handleActionSelect = (type: string, payload?: any) => {
+    if (type === 'evidence') {
+      handleOpenEvidence();
+    } else if (type === 'graph') {
+      setGraphModalOpen(true);
+    } else if (type === 'qa') {
+      handleAskQuestion(payload?.query || '');
+    } else if (type === 'timeline') {
+      setToastMessage('Navigated to Chronological Audit Timeline.');
+      setTimeout(() => setToastMessage(null), 3000);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[#080a0f] text-slate-100 flex flex-col font-sans selection:bg-lime-400 selection:text-black">
-      {/* Top Header */}
-      <Header
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        metrics={metrics}
-        onReset={handleReset}
+    <div className="min-h-screen bg-[#0D0F0E] text-[#F5F7F5] flex overflow-x-hidden font-sans relative selection:bg-[#C9FF3D] selection:text-[#0D0F0E]">
+      {/* 1. Miniature Gravitational Black Hole Cursor */}
+      <BlackHoleCursor mode={cursorMode} />
+
+      {/* 2. Three.js 3D Antigravity Information Field Background */}
+      <AntigravityScene isProcessing={cursorMode === 'PROCESSING'} />
+
+      {/* 3. Confirmation Toast Banner */}
+      {toastMessage && (
+        <div className="fixed top-6 right-6 z-50 p-4 rounded-2xl bg-[#171A18]/95 border border-[#C9FF3D]/40 text-[#F5F7F5] flex items-center space-x-3 text-xs font-mono shadow-2xl backdrop-blur-xl animate-in fade-in slide-in-from-top-4">
+          <div className="w-6 h-6 rounded-lg bg-[#C9FF3D]/20 text-[#C9FF3D] flex items-center justify-center flex-shrink-0">
+            <Sparkles className="w-3.5 h-3.5" />
+          </div>
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* 4. Left Sidebar */}
+      <Sidebar
+        activeTab={activeNav}
+        setActiveTab={(tab) => {
+          setActiveNav(tab);
+          if (tab === 'evidence') handleOpenEvidence();
+          if (tab === 'knowledge-graph') setGraphModalOpen(true);
+          if (tab === 'documents') setUploadOpen(true);
+        }}
+        onOpenUpload={() => setUploadOpen(true)}
+        collapsed={sidebarCollapsed}
+        setCollapsed={setSidebarCollapsed}
+        counts={{
+          documents: docCount,
+          intelligence: 3,
+          conflicts: 7,
+          missingData: 4
+        }}
       />
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Error Banner */}
-        {error && (
-          <div className="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 flex items-center justify-between text-xs font-mono">
-            <div className="flex items-center space-x-2">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span>{error}</span>
-            </div>
-            <button
-              onClick={loadAllData}
-              className="px-3 py-1 rounded bg-rose-500/20 hover:bg-rose-500/30 transition-colors flex items-center space-x-1"
-            >
-              <RefreshCw className="w-3 h-3" />
-              <span>Retry</span>
-            </button>
+      {/* 5. Main Center Dashboard & Right AI HUD */}
+      <div className="flex-1 min-w-0 flex flex-col lg:flex-row h-screen overflow-y-auto z-10">
+        {/* Center Main Intelligence Column */}
+        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-7 space-y-6 max-w-7xl">
+          {/* Top Search Bar & Hero Header */}
+          <TopBar
+            onSearchOpen={() => setCommandPaletteOpen(true)}
+            onNotificationsOpen={() => handleOpenEvidence()}
+          />
+
+          {/* 4 KPI Animated Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <KpiCard
+              label="Documents"
+              value={docCount}
+              change="+6 today"
+              icon={<FileText className="w-4 h-4 text-[#C9FF3D]" />}
+              iconBg="rgba(201, 255, 61, 0.12)"
+              iconColor="#C9FF3D"
+              onClick={() => setUploadOpen(true)}
+            />
+
+            <KpiCard
+              label="Relationships"
+              value={186}
+              change="+32 today"
+              icon={<Share2 className="w-4 h-4 text-[#79DF9B]" />}
+              iconBg="rgba(121, 223, 155, 0.12)"
+              iconColor="#79DF9B"
+              onClick={() => setGraphModalOpen(true)}
+            />
+
+            <KpiCard
+              label="Conflicts"
+              value={7}
+              criticalText="2 critical"
+              icon={<AlertTriangle className="w-4 h-4 text-[#FF7777]" />}
+              iconBg="rgba(255, 119, 119, 0.12)"
+              iconColor="#FF7777"
+              onClick={() => handleOpenEvidence()}
+            />
+
+            <KpiCard
+              label="Missing Data"
+              value={4}
+              criticalText="1 critical"
+              icon={<HelpCircle className="w-4 h-4 text-[#FFBD59]" />}
+              iconBg="rgba(255, 189, 89, 0.12)"
+              iconColor="#FFBD59"
+              onClick={() => handleOpenEvidence()}
+            />
           </div>
-        )}
 
-        {/* Loading Spinner */}
-        {loading && !metrics ? (
-          <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
-            <div className="w-10 h-10 rounded-full border-2 border-lime-400 border-t-transparent animate-spin"></div>
-            <p className="text-xs font-mono text-slate-400">
-              Synchronizing with NEXUS Intelligence Pipeline...
-            </p>
+          {/* Document Processing Hero Panel with Holographic Core */}
+          <DocumentProcessingPanel
+            onExplorePipeline={() => setUploadOpen(true)}
+          />
+
+          {/* Middle Row: Recent Intelligence & Document Summary */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <RecentIntelligence
+              onSelectItem={(item) => handleOpenEvidence(item)}
+              onViewAll={() => handleOpenEvidence()}
+            />
+
+            <DocumentSummary
+              onViewAll={() => setUploadOpen(true)}
+              onSelectDocument={() => setUploadOpen(true)}
+            />
           </div>
-        ) : (
-          <div>
-            {activeTab === 'dashboard' && (
-              <DashboardView
-                metrics={metrics}
-                findings={findings}
-                documents={documents}
-                timeline={timeline}
-                onOpenFinding={(f) => setInspectingFinding(f)}
-                onNavigate={(tab) => setActiveTab(tab)}
-              />
-            )}
 
-            {activeTab === 'documents' && (
-              <DocumentsView
-                documents={documents}
-                onUpload={handleUpload}
-                onRefreshProgress={async () => {
-                  const res = await nexusApi.pollProgress();
-                  setDocuments(res.documents);
-                }}
-                onDeleteDocument={handleDeleteDocument}
-              />
-            )}
+          {/* Bottom Row: Knowledge Graph & Timeline Mini Previews */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 pb-6">
+            <KnowledgeGraphMini
+              onOpenFullGraph={() => setGraphModalOpen(true)}
+            />
 
-            {activeTab === 'findings' && (
-              <FindingsView
-                findings={findings}
-                missingInfo={missingInfo}
-                onOpenFinding={(f) => setInspectingFinding(f)}
-              />
-            )}
-
-            {activeTab === 'timeline' && (
-              <TimelineView timeline={timeline} />
-            )}
-
-            {activeTab === 'graph' && (
-              <KnowledgeGraphView graphData={graphData} />
-            )}
-
-            {activeTab === 'qa' && (
-              <QAView
-                onAsk={handleAskQuestion}
-                onInspectEvidence={(f) => setInspectingFinding(f)}
-                findings={findings}
-              />
-            )}
-
-            {activeTab === 'report' && (
-              <ReportView
-                report={report}
-                onOpenFinding={(f) => setInspectingFinding(f)}
-              />
-            )}
+            <TimelineMini
+              onOpenFullTimeline={() => handleOpenEvidence()}
+            />
           </div>
-        )}
-      </main>
+        </main>
 
-      {/* Traceable Evidence Modal */}
-      <EvidenceModal
-        finding={inspectingFinding}
-        onClose={() => setInspectingFinding(null)}
+        {/* Right Column: Holographic NEXUS AI HUD Panel */}
+        <aside className="p-4 sm:p-6 lg:p-7 lg:pl-0 border-t lg:border-t-0 lg:border-l border-[#292D2B] bg-[#0D0F0E]/70 flex-shrink-0">
+          <NexusHudPanel
+            onAskQuestion={handleAskQuestion}
+            onOpenEvidence={() => handleOpenEvidence()}
+            onOpenInsight={(insight) => handleOpenEvidence()}
+          />
+        </aside>
+      </div>
+
+      {/* 6. Modals & Drawers */}
+      <EvidenceDrawer
+        isOpen={evidenceOpen}
+        onClose={() => {
+          setEvidenceOpen(false);
+          setCursorMode('NORMAL');
+        }}
+        evidenceData={selectedEvidence}
       />
 
-      {/* Footer */}
-      <footer className="border-t border-white/5 py-4 px-6 text-center text-slate-600 text-[11px] font-mono">
-        NEXUS AI • Hackathon Team Member 3 (Reasoning + Orchestration + User Experience) • Strictly Evidence Grounded
-      </footer>
+      <UploadModal
+        isOpen={uploadOpen}
+        onClose={() => setUploadOpen(false)}
+        onUploadSuccess={handleUploadSuccess}
+      />
+
+      <CommandPalette
+        isOpen={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+        onSelectAction={handleActionSelect}
+      />
+
+      <KnowledgeGraphModal
+        isOpen={graphModalOpen}
+        onClose={() => setGraphModalOpen(false)}
+        onInspectEvidence={() => {
+          setGraphModalOpen(false);
+          handleOpenEvidence();
+        }}
+      />
     </div>
   );
 }

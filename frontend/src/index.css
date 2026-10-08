@@ -2,92 +2,178 @@
 
 @layer base {
   :root {
-    --nexus-bg: #090b10;
-    --nexus-card: rgba(18, 22, 34, 0.75);
-    --nexus-card-hover: rgba(26, 32, 50, 0.85);
-    --nexus-border: rgba(255, 255, 255, 0.08);
-    --nexus-border-glow: rgba(204, 255, 0, 0.25);
-    --nexus-accent: #ccff00;
-    --nexus-accent-emerald: #10b981;
-    --nexus-accent-cyan: #06b6d4;
+    --nexus-bg: #0D0F0E;
+    --nexus-sidebar: #111312;
+    --nexus-card: #171A18;
+    --nexus-secondary: #1D211F;
+    --nexus-border: #292D2B;
+    --nexus-text-primary: #F5F7F5;
+    --nexus-text-secondary: #8F9691;
+    --nexus-lime: #C9FF3D;
+    --nexus-lime-glow: rgba(201, 255, 61, 0.25);
+    --nexus-warning: #FFBD59;
+    --nexus-critical: #FF7777;
+    --nexus-success: #79DF9B;
+    
+    --mouse-x: 50%;
+    --mouse-y: 50%;
+  }
+
+  * {
+    box-sizing: border-box;
   }
 
   body {
-    background-color: #080a0f;
-    background-image: 
-      radial-gradient(at 0% 0%, rgba(204, 255, 0, 0.04) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, rgba(16, 185, 129, 0.05) 0px, transparent 50%),
-      radial-gradient(at 50% 100%, rgba(6, 182, 212, 0.04) 0px, transparent 50%);
-    color: #e2e8f0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif;
+    background-color: #0D0F0E;
+    color: #F5F7F5;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", "Plus Jakarta Sans", sans-serif;
     min-height: 100vh;
     overflow-x: hidden;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Hide default cursor on desktop when black-hole cursor is active */
+  @media (pointer: fine) {
+    body, a, button, input, [role="button"] {
+      cursor: none !important;
+    }
   }
 }
 
-/* Glassmorphism utilities */
-.glass-panel {
-  background: rgba(15, 19, 29, 0.72);
+/* Glassmorphism styling matching reference image */
+.glass-panel-nexus {
+  background: rgba(23, 26, 24, 0.72);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid #292D2B;
+  box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.5);
+}
+
+.glass-panel-subtle {
+  background: rgba(29, 33, 31, 0.55);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  border: 1px solid rgba(41, 45, 43, 0.8);
 }
 
-.glass-panel-glow {
-  background: rgba(18, 23, 36, 0.8);
+.glass-card-interactive {
+  position: relative;
+  background: rgba(23, 26, 24, 0.85);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(204, 255, 0, 0.18);
-  box-shadow: 0 0 25px -5px rgba(204, 255, 0, 0.12), 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid #292D2B;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
 }
 
-.glass-panel-danger {
-  background: rgba(28, 16, 20, 0.75);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(239, 68, 68, 0.25);
-  box-shadow: 0 0 20px -5px rgba(239, 68, 68, 0.15);
+.glass-card-interactive::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    280px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(201, 255, 61, 0.08),
+    transparent 55%
+  );
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 1;
 }
 
-/* Custom glowing badge */
-.badge-lime {
-  background: rgba(204, 255, 0, 0.12);
-  color: #ccff00;
-  border: 1px solid rgba(204, 255, 0, 0.3);
+.glass-card-interactive:hover::before {
+  opacity: 1;
 }
 
-.badge-emerald {
-  background: rgba(16, 185, 129, 0.12);
-  color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.3);
+.glass-card-interactive:hover {
+  transform: translateY(-3px);
+  border-color: rgba(201, 255, 61, 0.35);
+  box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.6), 0 0 20px -5px rgba(201, 255, 61, 0.12);
 }
 
-.badge-crimson {
-  background: rgba(239, 68, 68, 0.12);
-  color: #f87171;
-  border: 1px solid rgba(239, 68, 68, 0.3);
+/* Glow Utilities */
+.lime-glow {
+  box-shadow: 0 0 25px rgba(201, 255, 61, 0.3);
 }
 
-.badge-amber {
-  background: rgba(245, 158, 11, 0.12);
-  color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.3);
+.lime-glow-sm {
+  box-shadow: 0 0 12px rgba(201, 255, 61, 0.2);
 }
 
-/* Custom scrollbars */
+.lime-text-glow {
+  text-shadow: 0 0 12px rgba(201, 255, 61, 0.6);
+}
+
+/* Radar pulse animation for online status */
+@keyframes radar-pulse {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+}
+
+.radar-ping {
+  animation: radar-pulse 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* Orbital ring rotation animations */
+@keyframes spin-clockwise {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes spin-counter-clockwise {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+.spin-slow-cw {
+  animation: spin-clockwise 24s linear infinite;
+}
+
+.spin-slow-ccw {
+  animation: spin-counter-clockwise 18s linear infinite;
+}
+
+.spin-medium-cw {
+  animation: spin-clockwise 12s linear infinite;
+}
+
+/* Custom sleek scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0b0e14;
+  background: #0D0F0E;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 3px;
+  background: #292D2B;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(204, 255, 0, 0.4);
+  background: #C9FF3D;
 }
