@@ -83,22 +83,40 @@ app.get('/api/documents', (req, res) => {
   res.json(sessionData.documents);
 });
 
+function detectCategory(name) {
+  const n = (name || '').toLowerCase();
+  if (n.includes('tax') || n.includes('itr') || n.includes('form16') || n.includes('gst')) return 'TAX';
+  if (n.includes('grant') || n.includes('subsidy') || n.includes('sanction') || n.includes('mnre')) return 'GRANT';
+  if (n.includes('kyc') || n.includes('pan') || n.includes('aadhaar') || n.includes('passport') || n.includes('identity')) return 'IDENTITY';
+  if (n.includes('legal') || n.includes('board') || n.includes('resolution') || n.includes('agreement') || n.includes('noc')) return 'LEGAL';
+  return 'FINANCIAL';
+}
+
 // Processing upload simulation
 app.post('/api/documents/upload', (req, res) => {
-  const { filenames } = req.body || { filenames: [] };
-  const names = Array.isArray(filenames) && filenames.length > 0 ? filenames : ['Financial_Audit_Addendum.pdf'];
+  const incoming = req.body?.files || req.body?.filenames || [];
+  const fileItems = Array.isArray(incoming) && incoming.length > 0 ? incoming : ['Financial_Audit_Addendum.pdf'];
 
-  const newDocs = names.map((name, i) => ({
-    id: `doc-${Date.now()}-${i}`,
-    name,
-    fileType: 'pdf',
-    fileSize: Math.floor(1024 * 1024 * (1.5 + Math.random() * 3)),
-    totalPages: Math.floor(3 + Math.random() * 8),
-    uploadedAt: new Date().toISOString(),
-    status: 'PROCESSING',
-    processingProgress: 15,
-    documentCategory: 'FINANCIAL'
-  }));
+  const newDocs = fileItems.map((item, i) => {
+    const isObj = typeof item === 'object' && item !== null;
+    const name = isObj ? item.name : String(item);
+    const size = isObj && item.size ? item.size : Math.floor(1024 * 1024 * (1.5 + Math.random() * 3));
+    const ext = name.split('.').pop()?.toLowerCase() || 'pdf';
+    const category = isObj && item.category ? item.category : detectCategory(name);
+    const pages = isObj && item.totalPages ? item.totalPages : Math.max(1, Math.min(40, Math.round(size / (250 * 1024)) || Math.floor(2 + Math.random() * 6)));
+
+    return {
+      id: `doc-${Date.now()}-${i}`,
+      name,
+      fileType: ext,
+      fileSize: size,
+      totalPages: pages,
+      uploadedAt: new Date().toISOString(),
+      status: 'PROCESSING',
+      processingProgress: 15,
+      documentCategory: category
+    };
+  });
 
   sessionData.documents.push(...newDocs);
   sessionData.metrics.totalDocuments = sessionData.documents.length;
@@ -107,6 +125,16 @@ app.post('/api/documents/upload', (req, res) => {
     message: `${newDocs.length} document(s) accepted for pipeline ingestion`,
     documents: newDocs
   });
+});
+
+// Delete document endpoint
+app.delete('/api/documents/:id', (req, res) => {
+  const { id } = req.params;
+  const initialLen = sessionData.documents.length;
+  sessionData.documents = sessionData.documents.filter(d => d.id !== id);
+  sessionData.metrics.totalDocuments = sessionData.documents.length;
+  sessionData.metrics.processedDocuments = sessionData.documents.filter(d => d.status === 'PROCESSED').length;
+  res.json({ success: true, removed: initialLen > sessionData.documents.length });
 });
 
 // Real-time processing progress poller

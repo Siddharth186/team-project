@@ -36,13 +36,21 @@ export const nexusApi = {
     return res.json();
   },
 
-  async uploadDocuments(filenames: string[]): Promise<any> {
+  async uploadDocuments(files: Array<{ name: string; size?: number; type?: string; category?: string } | string>): Promise<any> {
     const res = await fetch(`${BASE_URL}/documents/upload`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filenames })
+      body: JSON.stringify({ files })
     });
     if (!res.ok) throw new Error('Upload failed');
+    return res.json();
+  },
+
+  async deleteDocument(id: string): Promise<any> {
+    const res = await fetch(`${BASE_URL}/documents/${id}`, {
+      method: 'DELETE'
+    });
+    if (!res.ok) throw new Error('Failed to delete document');
     return res.json();
   },
 

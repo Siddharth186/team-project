@@ -100,15 +100,27 @@ export function App() {
     return () => clearInterval(interval);
   }, [documents]);
 
-  const handleUpload = async (filenames: string[]) => {
+  const handleUpload = async (files: Array<{ name: string; size: number; type: string } | string>) => {
     try {
-      await nexusApi.uploadDocuments(filenames);
+      await nexusApi.uploadDocuments(files);
       const updatedDocs = await nexusApi.getDocuments();
       setDocuments(updatedDocs);
       const updatedMetrics = await nexusApi.getMetrics();
       setMetrics(updatedMetrics);
     } catch (e) {
       console.error('Upload failed:', e);
+    }
+  };
+
+  const handleDeleteDocument = async (id: string) => {
+    try {
+      await nexusApi.deleteDocument(id);
+      const updatedDocs = await nexusApi.getDocuments();
+      setDocuments(updatedDocs);
+      const updatedMetrics = await nexusApi.getMetrics();
+      setMetrics(updatedMetrics);
+    } catch (e) {
+      console.error('Delete failed:', e);
     }
   };
 
@@ -183,6 +195,7 @@ export function App() {
                   const res = await nexusApi.pollProgress();
                   setDocuments(res.documents);
                 }}
+                onDeleteDocument={handleDeleteDocument}
               />
             )}
 
