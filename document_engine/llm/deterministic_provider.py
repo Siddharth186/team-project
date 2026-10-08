@@ -7,7 +7,7 @@ class DeterministicLLMProvider(LLMProvider):
     """
     Deterministic rule-based information intelligence engine.
     Ensures 100% reliability, zero cost, and zero external dependency for tests and offline hackathon demos.
-    Extracts high-precision candidate entities, facts, relationships, and source evidence.
+    Extracts high-precision candidate entities, facts, relationships, and source evidence from text and tables.
     """
 
     def get_provider_name(self) -> str:
@@ -35,8 +35,8 @@ class DeterministicLLMProvider(LLMProvider):
         seen_entities = set()
 
         def add_entity(val: str, ent_type: str, line_src: str):
-            val_clean = val.strip()
-            if not val_clean or val_clean in seen_entities:
+            val_clean = val.strip().strip("|,").strip()
+            if not val_clean or len(val_clean) < 2 or val_clean in seen_entities:
                 return
             seen_entities.add(val_clean)
             ev = {
@@ -96,10 +96,56 @@ class DeterministicLLMProvider(LLMProvider):
         lines = text.split("\n")
         current_primary_person = "Applicant"
 
+        # Table header tracking
+        table_headers = []
+
         for line in lines:
             line_str = line.strip()
             if not line_str:
                 continue
+
+            # Check for Table rows (Markdown table format)
+            if line_str.startswith("|") and line_str.endswith("|"):
+                cells = [c.strip() for c in line_str.split("|")[1:-1]]
+                if all(c.startswith("---") for c in cells):
+                    continue
+                if not table_headers or "Name" in cells or "Applicant" in cells or "Month" in cells or "Designation" in cells or "Transaction Date" in cells:
+                    table_headers = [c.lower().replace(" ", "_") for c in cells]
+                    continue
+                else:
+                    # Process table row cells with headers
+                    row_dict = dict(zip(table_headers, cells))
+                    row_person = row_dict.get("applicant") or row_dict.get("entity") or row_dict.get("employee") or current_primary_person
+                    if row_person and row_person != "Applicant":
+                        add_entity(row_person, "PERSON", line_str)
+                    
+                    for h_name, h_val in row_dict.items():
+                        if not h_val:
+                            continue
+                        if h_name in ("income", "salary", "monthly_salary", "credit", "balance", "net_disbursed"):
+                            clean_num = re.sub(r'[^\d.]', '', h_val)
+                            if clean_num:
+                                num = float(clean_num) if "." in clean_num else int(clean_num)
+                                add_fact(row_person, h_name, num, "number", "INR", line_str)
+                                add_entity(f"INR {num}", "MONEY", line_str)
+                        elif h_name in ("designation", "position", "role"):
+                            add_fact(row_person, "designation", h_val, "string", None, line_str)
+                        elif h_name in ("joining_date", "transaction_date", "date"):
+                            add_fact(row_person, h_name, h_val, "date", None, line_str)
+                            add_entity(h_val, "DATE", line_str)
+                    continue
+
+            # Check for natural language employment certification ("Mr. Ramesh Kumar is employed with Acme Global")
+            cert_m = re.search(r'(?:certify that\s+)?(?:Mr\.|Ms\.|Mrs\.)?\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\s+(?:is employed with|works at)\s+([A-Za-z0-9\s&,.]+)', line_str, re.IGNORECASE)
+            if cert_m:
+                pname = cert_m.group(1).strip()
+                orgname = cert_m.group(2).strip().rstrip(".")
+                current_primary_person = pname
+                add_entity(pname, "PERSON", line_str)
+                add_entity(orgname, "ORGANIZATION", line_str)
+                add_fact(pname, "full_name", pname, "string", None, line_str)
+                add_fact(orgname, "organization_name", orgname, "string", None, line_str)
+                add_rel(pname, "works_for", orgname, line_str)
 
             # Check for Person / Applicant name
             name_m = re.search(r'(?:Applicant(?:\s+Name)?|Name|Candidate|Employee|Customer|Officer)\s*[:=]\s*([A-Za-z\.\s]{3,40})', line_str, re.IGNORECASE)
