@@ -89,13 +89,13 @@ export const ChatBoxTerminal: React.FC<ChatBoxTerminalProps> = ({
           </div>
         </div>
 
-        {/* The prominent "+ upload Document" button (as explicitly drawn inside Chat box in sketch!) */}
+        {/* The prominent Upload Document button */}
         <button
           onClick={onOpenUpload}
           className="px-4 py-2 rounded-full bg-[#C9FF3D] hover:bg-[#bbf030] text-[#0D0F0E] font-bold text-xs tracking-wider uppercase font-mono flex items-center space-x-1.5 transition-all shadow-[0_0_15px_rgba(201,255,61,0.25)] hover:shadow-[0_0_20px_rgba(201,255,61,0.4)] self-start sm:self-auto"
         >
           <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-          <span>+ Upload Document</span>
+          <span>Upload Document</span>
         </button>
       </div>
 

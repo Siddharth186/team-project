@@ -16,8 +16,9 @@ export const AntigravityScene: React.FC<AntigravitySceneProps> = ({ isProcessing
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     // Scene, Camera, Renderer
+    const isLight = typeof document !== 'undefined' && document.documentElement.classList.contains('light-theme');
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x0D0F0E, 0.0018);
+    scene.fog = new THREE.FogExp2(isLight ? 0xF8FAF8 : 0x0D0F0E, 0.0018);
 
     const camera = new THREE.PerspectiveCamera(
       60,
@@ -41,9 +42,9 @@ export const AntigravityScene: React.FC<AntigravitySceneProps> = ({ isProcessing
     const velocities: Array<{ x: number; y: number; z: number }> = [];
     const colors = new Float32Array(nodeCount * 3);
 
-    const limeColor = new THREE.Color(0xC9FF3D);
-    const darkGreenColor = new THREE.Color(0x1F3520);
-    const cyanColor = new THREE.Color(0x2A453B);
+    const limeColor = new THREE.Color(isLight ? 0x0F5132 : 0xC9FF3D);
+    const darkGreenColor = new THREE.Color(isLight ? 0x1B4332 : 0x1F3520);
+    const cyanColor = new THREE.Color(isLight ? 0x2D5A40 : 0x2A453B);
 
     for (let i = 0; i < nodeCount; i++) {
       const x = (Math.random() - 0.5) * 500;

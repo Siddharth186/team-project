@@ -34,6 +34,7 @@
     user-select: none;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 
   /* Hide default cursor on desktop when black-hole cursor is active */
@@ -44,13 +45,14 @@
   }
 }
 
-/* Glassmorphism styling matching reference image */
+/* Glassmorphism styling matching reference image (Dark Mode) */
 .glass-panel-nexus {
   background: rgba(23, 26, 24, 0.72);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid #292D2B;
   box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.5);
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .glass-panel-subtle {
@@ -58,6 +60,7 @@
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(41, 45, 43, 0.8);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 .glass-card-interactive {
@@ -95,6 +98,159 @@
   box-shadow: 0 12px 30px -5px rgba(0, 0, 0, 0.6), 0 0 20px -5px rgba(201, 255, 61, 0.12);
 }
 
+/* =========================================================================
+   LIGHT MODE SYSTEM: White Background with Dark Green Accents & Elements
+   ========================================================================= */
+html.light-theme,
+.light-theme {
+  --nexus-bg: #FFFFFF;
+  --nexus-sidebar: #F8FAF8;
+  --nexus-card: #FFFFFF;
+  --nexus-secondary: #EFF5F1;
+  --nexus-border: rgba(15, 81, 50, 0.16);
+  --nexus-text-primary: #0D2E1C;
+  --nexus-text-secondary: #2D5A40;
+  --nexus-dark-green: #0F5132;
+  --nexus-dark-green-hover: #0A3D25;
+  background-color: #F8FAF8 !important;
+  color: #0D2E1C !important;
+}
+
+.light-theme body {
+  background-color: #F8FAF8 !important;
+  color: #0D2E1C !important;
+}
+
+/* Glass Panels in Light Mode */
+.light-theme .glass-panel-nexus {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border: 1px solid rgba(15, 81, 50, 0.16) !important;
+  box-shadow: 0 16px 40px -10px rgba(15, 81, 50, 0.08), 0 2px 8px rgba(15, 81, 50, 0.04) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+}
+
+.light-theme .glass-panel-subtle {
+  background: rgba(240, 246, 242, 0.9) !important;
+  border: 1px solid rgba(15, 81, 50, 0.14) !important;
+}
+
+.light-theme .glass-card-interactive {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border: 1px solid rgba(15, 81, 50, 0.16) !important;
+  box-shadow: 0 8px 24px -4px rgba(15, 81, 50, 0.06) !important;
+}
+
+.light-theme .glass-card-interactive::before {
+  background: radial-gradient(
+    280px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(15, 81, 50, 0.08),
+    transparent 55%
+  ) !important;
+}
+
+.light-theme .glass-card-interactive:hover {
+  transform: translateY(-3px);
+  border-color: rgba(15, 81, 50, 0.45) !important;
+  box-shadow: 0 12px 30px -5px rgba(15, 81, 50, 0.14) !important;
+  background: #FFFFFF !important;
+}
+
+/* Background surfaces in light mode */
+.light-theme [class*="bg-[#171A18]"] {
+  background-color: #FFFFFF !important;
+}
+
+.light-theme [class*="bg-[#111312]"] {
+  background-color: #F0F6F2 !important;
+}
+
+.light-theme [class*="bg-[#1D211F]"] {
+  background-color: #E2ECE4 !important;
+}
+
+.light-theme [class*="bg-[#0D0F0E]"] {
+  background-color: #F8FAF8 !important;
+}
+
+/* Borders in light mode */
+.light-theme [class*="border-[#292D2B]"] {
+  border-color: rgba(15, 81, 50, 0.16) !important;
+}
+
+/* Typography in light mode */
+.light-theme [class*="text-[#F5F7F5]"] {
+  color: #0D2E1C !important;
+}
+
+.light-theme [class*="text-[#8F9691]"] {
+  color: #2D5A40 !important;
+}
+
+/* Dark Green Accents replacing Lime in light mode */
+.light-theme [class*="text-[#C9FF3D]"] {
+  color: #0F5132 !important;
+}
+
+.light-theme [class*="bg-[#C9FF3D]"] {
+  background-color: #0F5132 !important;
+  color: #FFFFFF !important;
+}
+
+.light-theme button[class*="bg-[#C9FF3D]"]:hover {
+  background-color: #0A3D25 !important;
+  color: #FFFFFF !important;
+}
+
+.light-theme [class*="border-[#C9FF3D]"] {
+  border-color: #0F5132 !important;
+}
+
+.light-theme [class*="stroke-[#C9FF3D]"] {
+  stroke: #0F5132 !important;
+}
+
+.light-theme [class*="fill-[#C9FF3D]"] {
+  fill: #0F5132 !important;
+}
+
+/* Button & Badge tweaks in light mode */
+.light-theme .bg-\[\#C9FF3D\]\/10,
+.light-theme .bg-\[\#C9FF3D\]\/15,
+.light-theme .bg-\[\#C9FF3D\]\/20 {
+  background-color: rgba(15, 81, 50, 0.1) !important;
+  color: #0F5132 !important;
+}
+
+.light-theme .border-\[\#C9FF3D\]\/30,
+.light-theme .border-\[\#C9FF3D\]\/40,
+.light-theme .border-\[\#C9FF3D\]\/50 {
+  border-color: rgba(15, 81, 50, 0.25) !important;
+}
+
+/* Input Fields in light mode */
+.light-theme input[type="text"],
+.light-theme input,
+.light-theme textarea {
+  background-color: #FFFFFF !important;
+  color: #0D2E1C !important;
+  border-color: rgba(15, 81, 50, 0.22) !important;
+}
+
+.light-theme input::placeholder {
+  color: #4C725C !important;
+}
+
+.light-theme input:focus {
+  border-color: #0F5132 !important;
+  box-shadow: 0 0 0 2px rgba(15, 81, 50, 0.15) !important;
+}
+
+/* Progress Bars in light mode */
+.light-theme .bg-\[\#1D211F\] {
+  background-color: #E2ECE4 !important;
+}
+
 /* Glow Utilities */
 .lime-glow {
   box-shadow: 0 0 25px rgba(201, 255, 61, 0.3);
@@ -106,6 +262,14 @@
 
 .lime-text-glow {
   text-shadow: 0 0 12px rgba(201, 255, 61, 0.6);
+}
+
+.light-theme .lime-glow {
+  box-shadow: 0 0 25px rgba(15, 81, 50, 0.2) !important;
+}
+
+.light-theme .lime-text-glow {
+  text-shadow: 0 0 12px rgba(15, 81, 50, 0.3) !important;
 }
 
 /* Radar pulse animation for online status */
@@ -176,4 +340,17 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: #C9FF3D;
+}
+
+.light-theme ::-webkit-scrollbar-track {
+  background: #F0F6F2 !important;
+}
+
+.light-theme ::-webkit-scrollbar-thumb {
+  background: rgba(15, 81, 50, 0.25) !important;
+  border-radius: 4px;
+}
+
+.light-theme ::-webkit-scrollbar-thumb:hover {
+  background: #0F5132 !important;
 }

@@ -73,21 +73,31 @@ export const Navbar: React.FC<NavbarProps> = ({
           className="flex items-center space-x-2.5 cursor-pointer pl-2 flex-shrink-0 group select-none"
         >
           {/* 4-Pointed Star Symbol */}
-          <div className="w-8 h-8 rounded-xl bg-[#171A18] border border-[#292D2B] flex items-center justify-center flex-shrink-0 shadow-[0_0_15px_rgba(201,255,61,0.25)] group-hover:scale-105 transition-transform">
+          <div className={`w-8 h-8 rounded-xl border flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-105 ${
+            isDark
+              ? 'bg-[#171A18] border-[#292D2B] shadow-[0_0_15px_rgba(201,255,61,0.25)]'
+              : 'bg-[#FFFFFF] border-[rgba(15,81,50,0.2)] shadow-[0_0_15px_rgba(15,81,50,0.15)]'
+          }`}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
               <path
                 d="M 12 2 C 12.5 7 17 11.5 22 12 C 17 12.5 12.5 17 12 22 C 11.5 17 7 12.5 2 12 C 7 11.5 11.5 7 12 2 Z"
-                fill="#C9FF3D"
+                fill={isDark ? "#C9FF3D" : "#0F5132"}
               />
             </svg>
           </div>
-          <span className="font-extrabold text-base tracking-wider text-[#F5F7F5] font-mono">
-            NEXUS <span className="text-[#C9FF3D]">AI</span>
+          <span className={`font-extrabold text-base tracking-wider font-mono ${
+            isDark ? 'text-[#F5F7F5]' : 'text-[#0D2E1C]'
+          }`}>
+            NEXUS <span className={isDark ? "text-[#C9FF3D]" : "text-[#0F5132]"}>AI</span>
           </span>
         </div>
 
         {/* Center: Main Pill Navigation Bar (as sketched: Home | Documents | Intelligence | Conflicts | Missing data...) */}
-        <nav className="hidden lg:flex items-center space-x-1 px-2 py-1 rounded-full bg-[#111312]/90 border border-[#292D2B] overflow-x-auto scrollbar-none">
+        <nav className={`hidden lg:flex items-center space-x-1 px-2 py-1 rounded-full border overflow-x-auto scrollbar-none ${
+          isDark
+            ? 'bg-[#111312]/90 border-[#292D2B]'
+            : 'bg-[#FFFFFF] border-[rgba(15,81,50,0.2)] shadow-sm'
+        }`}>
           {navItems.map((item) => {
             const isActive = activeTab === item.id;
             const Icon = item.icon;
@@ -98,16 +108,28 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onClick={() => setActiveTab(item.id)}
                 className={`relative px-3.5 py-1.5 rounded-full text-xs font-mono transition-all duration-200 flex items-center space-x-1.5 whitespace-nowrap ${
                   isActive
-                    ? 'bg-[#C9FF3D] text-[#0D0F0E] font-bold shadow-[0_0_15px_rgba(201,255,61,0.35)]'
-                    : 'text-[#8F9691] hover:text-[#F5F7F5] hover:bg-[#1D211F]/80'
+                    ? (isDark
+                        ? 'bg-[#C9FF3D] text-[#0D0F0E] font-bold shadow-[0_0_15px_rgba(201,255,61,0.35)]'
+                        : 'bg-[#0F5132] text-white font-bold shadow-[0_0_12px_rgba(15,81,50,0.35)]')
+                    : (isDark
+                        ? 'text-[#8F9691] hover:text-[#F5F7F5] hover:bg-[#1D211F]/80'
+                        : 'text-[#2D5A40] hover:text-[#0D2E1C] hover:bg-[#E8F2EA]')
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-[#0D0F0E]' : 'text-[#8F9691]'}`} />
+                <Icon className={`w-3.5 h-3.5 ${
+                  isActive
+                    ? (isDark ? 'text-[#0D0F0E]' : 'text-white')
+                    : (isDark ? 'text-[#8F9691]' : 'text-[#2D5A40]')
+                }`} />
                 <span>{item.label}</span>
 
                 {/* Badge if present */}
                 {item.badge !== undefined && !isActive && (
-                  <span className="px-1.5 py-0.2 rounded-full bg-[#1D211F] text-[#8F9691] text-[9px] border border-[#292D2B]">
+                  <span className={`px-1.5 py-0.2 rounded-full text-[9px] border ${
+                    isDark
+                      ? 'bg-[#1D211F] text-[#8F9691] border-[#292D2B]'
+                      : 'bg-[#EBF2EC] text-[#2D5A40] border-[rgba(15,81,50,0.2)]'
+                  }`}>
                     {item.badge}
                   </span>
                 )}
@@ -128,7 +150,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Dark / Light Toggle Pill (matching the "(dark / light)" box in the sketch!) */}
           <button
             onClick={() => setIsDark(!isDark)}
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-[#171A18] hover:bg-[#1D211F] border border-[#292D2B] hover:border-[#C9FF3D]/40 text-xs font-mono transition-all shadow-sm group"
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full border text-xs font-mono transition-all shadow-sm group ${
+              isDark
+                ? 'bg-[#171A18] hover:bg-[#1D211F] border-[#292D2B] hover:border-[#C9FF3D]/40 text-[#F5F7F5]'
+                : 'bg-[#FFFFFF] hover:bg-[#F0F6F2] border-[rgba(15,81,50,0.25)] hover:border-[#0F5132] text-[#0D2E1C]'
+            }`}
             title="Toggle Dark / Light theme"
           >
             {isDark ? (
@@ -139,29 +165,37 @@ export const Navbar: React.FC<NavbarProps> = ({
               </>
             ) : (
               <>
-                <Sun className="w-3.5 h-3.5 text-[#FFBD59] transition-transform group-hover:rotate-45" />
-                <span className="text-[#8F9691] text-[10px]">dark/</span>
-                <span className="text-[#F5F7F5] text-[11px] font-semibold">light</span>
+                <Sun className="w-3.5 h-3.5 text-[#0F5132] transition-transform group-hover:rotate-45" />
+                <span className="text-[#2D5A40] text-[10px]">dark/</span>
+                <span className="text-[#0F5132] text-[11px] font-bold">light</span>
               </>
             )}
           </button>
 
-          {/* User Profile Avatar (matching the profile icon circle in sketch) */}
+          {/* User Profile Avatar */}
           <div
-            className="w-8 h-8 rounded-full bg-[#171A18] border border-[#292D2B] hover:border-[#C9FF3D]/50 text-[#F5F7F5] flex items-center justify-center cursor-pointer transition-colors shadow-sm"
+            className={`w-8 h-8 rounded-full border flex items-center justify-center cursor-pointer transition-colors shadow-sm ${
+              isDark
+                ? 'bg-[#171A18] border-[#292D2B] hover:border-[#C9FF3D]/50 text-[#C9FF3D]'
+                : 'bg-[#FFFFFF] border-[rgba(15,81,50,0.2)] hover:border-[#0F5132] text-[#0F5132]'
+            }`}
             title="User Profile (CT)"
           >
-            <User className="w-4 h-4 text-[#C9FF3D]" />
+            <User className="w-4 h-4" />
           </div>
 
-          {/* Search Trigger with dropdown arrow (matching "Q v" in sketch) */}
+          {/* Search Trigger with dropdown arrow */}
           <button
             onClick={onOpenSearch}
-            className="flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-[#171A18] hover:bg-[#1D211F] border border-[#292D2B] hover:border-[#C9FF3D]/50 text-[#8F9691] hover:text-[#C9FF3D] text-xs font-mono transition-all shadow-sm"
+            className={`flex items-center space-x-1 px-2.5 py-1.5 rounded-xl border text-xs font-mono transition-all shadow-sm ${
+              isDark
+                ? 'bg-[#171A18] hover:bg-[#1D211F] border-[#292D2B] hover:border-[#C9FF3D]/50 text-[#8F9691] hover:text-[#C9FF3D]'
+                : 'bg-[#FFFFFF] hover:bg-[#F0F6F2] border-[rgba(15,81,50,0.2)] hover:border-[#0F5132] text-[#2D5A40] hover:text-[#0F5132]'
+            }`}
             title="Search & Command Center (⌘ K)"
           >
-            <Search className="w-3.5 h-3.5 text-[#C9FF3D]" />
-            <ChevronDown className="w-3 h-3 text-[#8F9691]" />
+            <Search className={`w-3.5 h-3.5 ${isDark ? 'text-[#C9FF3D]' : 'text-[#0F5132]'}`} />
+            <ChevronDown className={`w-3 h-3 ${isDark ? 'text-[#8F9691]' : 'text-[#2D5A40]'}`} />
           </button>
         </div>
       </div>

@@ -110,11 +110,12 @@ export const BlackHoleCursor: React.FC<BlackHoleCursorProps> = ({ mode = 'NORMAL
 
   // Determine mode color
   const getAccretionColor = () => {
+    const isLight = typeof document !== 'undefined' && document.documentElement.classList.contains('light-theme');
     switch (mode) {
       case 'CONFLICT': return '#FF7777';
       case 'SEARCH': return '#38BDF8';
       case 'SUCCESS': return '#79DF9B';
-      default: return '#C9FF3D';
+      default: return isLight ? '#0F5132' : '#C9FF3D';
     }
   };
 

@@ -42,6 +42,17 @@ export function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Synchronize light / dark theme class with root document
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.remove('light-theme');
+      document.documentElement.classList.add('dark-theme');
+    } else {
+      document.documentElement.classList.remove('dark-theme');
+      document.documentElement.classList.add('light-theme');
+    }
+  }, [isDark]);
+
   const handleUploadSuccess = (files: Array<{ name: string; size: number; type: string }>) => {
     setDocCount(prev => prev + files.length);
     setCursorMode('SUCCESS');
@@ -51,7 +62,7 @@ export function App() {
         particleCount: 35,
         spread: 60,
         origin: { y: 0.6 },
-        colors: ['#C9FF3D', '#79DF9B', '#FFFFFF']
+        colors: isDark ? ['#C9FF3D', '#79DF9B', '#FFFFFF'] : ['#0F5132', '#166534', '#FFFFFF']
       });
     } catch {
       // Fallback
@@ -82,8 +93,10 @@ export function App() {
 
   return (
     <div
-      className={`min-h-screen text-[#F5F7F5] flex flex-col font-sans relative selection:bg-[#C9FF3D] selection:text-[#0D0F0E] transition-colors duration-300 ${
-        isDark ? 'bg-[#0D0F0E]' : 'bg-[#121614]'
+      className={`min-h-screen flex flex-col font-sans relative transition-colors duration-300 ${
+        isDark
+          ? 'bg-[#0D0F0E] text-[#F5F7F5] selection:bg-[#C9FF3D] selection:text-[#0D0F0E]'
+          : 'bg-[#F8FAF8] text-[#0D2E1C] light-theme selection:bg-[#0F5132] selection:text-white'
       }`}
     >
       {/* 1. Miniature Gravitational Black Hole Cursor */}

@@ -49,7 +49,7 @@ export const NexusHolographicCore: React.FC<NexusHolographicCoreProps> = ({
   const getAccentColor = () => {
     if (state === 'VALIDATING') return '#FF7777';
     if (state === 'ANALYZING') return '#FFBD59';
-    return '#C9FF3D';
+    return 'var(--nexus-accent-core, #C9FF3D)';
   };
 
   const accentColor = getAccentColor();
@@ -75,9 +75,9 @@ export const NexusHolographicCore: React.FC<NexusHolographicCoreProps> = ({
       >
         <defs>
           <radialGradient id="coreBgGrad" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#111613" />
-            <stop offset="75%" stopColor="#0B0D0C" />
-            <stop offset="100%" stopColor="#0D0F0E" />
+            <stop offset="0%" stopColor="var(--nexus-core-bg-1, #111613)" />
+            <stop offset="75%" stopColor="var(--nexus-core-bg-2, #0B0D0C)" />
+            <stop offset="100%" stopColor="var(--nexus-core-bg-3, #0D0F0E)" />
           </radialGradient>
 
           <filter id="coreGlow" x="-20%" y="-20%" width="140%" height="140%">
