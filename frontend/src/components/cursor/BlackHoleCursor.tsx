@@ -9,13 +9,13 @@ interface BlackHoleCursorProps {
 export const BlackHoleCursor: React.FC<BlackHoleCursorProps> = ({ mode = 'NORMAL' }) => {
   const cursorRef = useRef<HTMLDivElement>(null);
   const ringRef = useRef<HTMLDivElement>(null);
-  const rippleRef = useRef<HTMLDivElement>(null);
+  const particleRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   // Position & physics state
   const mousePos = useRef({ x: -100, y: -100 });
   const cursorSmoothPos = useRef({ x: -100, y: -100 });
   const velocity = useRef({ x: 0, y: 0 });
-  const isHovering = useRef(false);
+  const [hovering, setHovering] = useState(false);
   const [isClicking, setIsClicking] = useState(false);
   const [ripples, setRipples] = useState<Array<{ id: number; x: number; y: number }>>([]);
 
@@ -32,25 +32,28 @@ export const BlackHoleCursor: React.FC<BlackHoleCursorProps> = ({ mode = 'NORMAL
     const isDesktop = window.matchMedia('(pointer: fine)').matches;
     if (!isDesktop) return;
 
+    let hoverCheckTimeout: number;
+
     const handleMouseMove = (e: MouseEvent) => {
       mousePos.current = { x: e.clientX, y: e.clientY };
 
-      // Update CSS variables for localized card illumination
-      document.documentElement.style.setProperty('--mouse-x', `${e.clientX}px`);
-      document.documentElement.style.setProperty('--mouse-y', `${e.clientY}px`);
-
-      // Detect hover over interactive elements
-      const target = e.target as HTMLElement | null;
-      if (target) {
-        const interactive = target.closest('button, a, input, [role="button"], .interactive-node, tr');
-        isHovering.current = !!interactive;
+      // Detect hover over interactive elements with throttling
+      if (!hoverCheckTimeout) {
+        hoverCheckTimeout = window.setTimeout(() => {
+          const target = e.target as HTMLElement | null;
+          if (target) {
+            const interactive = !!target.closest('button, a, input, [role="button"], .interactive-node, tr');
+            setHovering(interactive);
+          }
+          hoverCheckTimeout = 0;
+        }, 60);
       }
     };
 
     const handleMouseDown = (e: MouseEvent) => {
       setIsClicking(true);
       const rippleId = Date.now();
-      setRipples(prev => [...prev, { id: rippleId, x: e.clientX, y: e.clientY }]);
+      setRipples(prev => [...prev.slice(-2), { id: rippleId, x: e.clientX, y: e.clientY }]);
       setTimeout(() => {
         setRipples(prev => prev.filter(r => r.id !== rippleId));
       }, 500);
@@ -58,11 +61,16 @@ export const BlackHoleCursor: React.FC<BlackHoleCursorProps> = ({ mode = 'NORMAL
     };
 
     window.addEventListener('mousemove', handleMouseMove, { passive: true });
-    window.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mousedown', handleMouseDown, { passive: true });
 
     // Physics animation loop using lerp (spring smoothing)
     let animationFrameId: number;
     const updatePhysics = () => {
+      if (document.hidden) {
+        animationFrameId = requestAnimationFrame(updatePhysics);
+        return;
+      }
+
       // Lerp smoothing (82% smoothing factor)
       const dx = mousePos.current.x - cursorSmoothPos.current.x;
       const dy = mousePos.current.y - cursorSmoothPos.current.y;
@@ -81,18 +89,18 @@ export const BlackHoleCursor: React.FC<BlackHoleCursorProps> = ({ mode = 'NORMAL
       }
 
       if (ringRef.current) {
-        // Stretch accretion disk along velocity vector when moving fast
         ringRef.current.style.transform = `rotate(${angle}deg) scale(${stretch}, ${1 / Math.max(1, stretch * 0.8)})`;
       }
 
-      // Update orbiting particles
+      // Update orbiting particles directly via cached refs
+      const particleSpeedMultiplier = mode === 'PROCESSING' ? 2.2 : 1.0;
       particles.current.forEach((p, idx) => {
-        p.angle += mode === 'PROCESSING' ? p.speed * 2.2 : p.speed;
-        const particleEl = document.getElementById(`nexus-cursor-particle-${idx}`);
-        if (particleEl) {
+        p.angle += p.speed * particleSpeedMultiplier;
+        const el = particleRefs.current[idx];
+        if (el) {
           const px = Math.cos(p.angle) * p.radius;
           const py = Math.sin(p.angle) * p.radius;
-          particleEl.style.transform = `translate3d(${px}px, ${py}px, 0)`;
+          el.style.transform = `translate3d(${px}px, ${py}px, 0)`;
         }
       });
 
@@ -105,6 +113,7 @@ export const BlackHoleCursor: React.FC<BlackHoleCursorProps> = ({ mode = 'NORMAL
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mousedown', handleMouseDown);
       cancelAnimationFrame(animationFrameId);
+      if (hoverCheckTimeout) clearTimeout(hoverCheckTimeout);
     };
   }, [mode]);
 
@@ -150,7 +159,7 @@ export const BlackHoleCursor: React.FC<BlackHoleCursorProps> = ({ mode = 'NORMAL
           className="absolute -inset-4 rounded-full blur-md opacity-40 transition-all duration-300 pointer-events-none"
           style={{
             background: `radial-gradient(circle, ${ringColor} 0%, transparent 70%)`,
-            transform: isClicking ? 'scale(1.8)' : isHovering.current ? 'scale(1.3)' : 'scale(1)'
+            transform: isClicking ? 'scale(1.8)' : hovering ? 'scale(1.3)' : 'scale(1)'
           }}
         />
 
@@ -159,18 +168,18 @@ export const BlackHoleCursor: React.FC<BlackHoleCursorProps> = ({ mode = 'NORMAL
           ref={ringRef}
           className="relative rounded-full flex items-center justify-center transition-all duration-200"
           style={{
-            width: isHovering.current ? '24px' : isClicking ? '10px' : '16px',
-            height: isHovering.current ? '24px' : isClicking ? '10px' : '16px',
+            width: hovering ? '24px' : isClicking ? '10px' : '16px',
+            height: hovering ? '24px' : isClicking ? '10px' : '16px',
             border: `1.5px solid ${ringColor}`,
             boxShadow: `0 0 10px ${ringColor}, inset 0 0 4px ${ringColor}`
           }}
         >
-          {/* Black Hole Singularity Core (Almost pitch-black) */}
+          {/* Black Hole Singularity Core */}
           <div
             className="rounded-full bg-[#0D0F0E] transition-all duration-150"
             style={{
-              width: isClicking ? '4px' : isHovering.current ? '14px' : '8px',
-              height: isClicking ? '4px' : isHovering.current ? '14px' : '8px',
+              width: isClicking ? '4px' : hovering ? '14px' : '8px',
+              height: isClicking ? '4px' : hovering ? '14px' : '8px',
               boxShadow: 'inset 0 0 6px #000'
             }}
           />
@@ -180,7 +189,7 @@ export const BlackHoleCursor: React.FC<BlackHoleCursorProps> = ({ mode = 'NORMAL
         {particles.current.map((p, idx) => (
           <div
             key={idx}
-            id={`nexus-cursor-particle-${idx}`}
+            ref={el => { particleRefs.current[idx] = el; }}
             className="absolute top-1/2 left-1/2 rounded-full pointer-events-none -translate-x-1/2 -translate-y-1/2"
             style={{
               width: `${p.size}px`,

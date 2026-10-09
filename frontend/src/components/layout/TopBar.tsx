@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Search, Bell, Calendar, ChevronDown, Sparkles, Command } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Bell, Calendar, ChevronDown, Sparkles, Command, Clock } from 'lucide-react';
 
 interface TopBarProps {
   onSearchOpen: () => void;
@@ -8,6 +8,31 @@ interface TopBarProps {
 
 export const TopBar: React.FC<TopBarProps> = ({ onSearchOpen, onNotificationsOpen }) => {
   const [isFocused, setIsFocused] = useState(false);
+  const [now, setNow] = useState<Date>(new Date());
+
+  // Live ticking clock updated every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const hours = now.getHours();
+  const greeting = hours < 12 ? 'Good morning' : hours < 18 ? 'Good afternoon' : 'Good evening';
+
+  const dateString = now.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+
+  const timeString = now.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
 
   return (
     <div className="space-y-5">
@@ -40,7 +65,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onSearchOpen, onNotificationsOpe
           {/* Notification Bell with red pulse dot */}
           <button
             onClick={onNotificationsOpen}
-            className="relative p-2.5 rounded-full bg-[#171A18] border border-[#292D2B] text-[#8F9691] hover:text-[#F5F7F5] hover:border-[#C9FF3D]/40 transition-colors"
+            className="relative p-2.5 rounded-full bg-[#171A18] border border-[#292D2B] text-[#8F9691] hover:text-[#F5F7F5] hover:border-[#C9FF3D]/40 transition-colors cursor-pointer"
           >
             <Bell className="w-4 h-4" />
             <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#FF7777] shadow-[0_0_8px_#FF7777]" />
@@ -63,19 +88,22 @@ export const TopBar: React.FC<TopBarProps> = ({ onSearchOpen, onNotificationsOpe
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[#F5F7F5] font-sans">
-            Good morning, <span className="text-[#C9FF3D] font-mono drop-shadow-[0_0_15px_rgba(201,255,61,0.35)]">Team</span>
+            {greeting}, <span className="text-[#C9FF3D] font-mono drop-shadow-[0_0_15px_rgba(201,255,61,0.35)]">Team</span>
           </h1>
           <p className="text-xs sm:text-sm text-[#8F9691] mt-1 font-sans">
             Here's what <span className="text-[#F5F7F5] font-semibold">NEXUS</span> discovered from your documents.
           </p>
         </div>
 
-        {/* Date Chip */}
-        <div className="flex items-center space-x-2 px-3.5 py-1.5 rounded-xl bg-[#171A18]/80 border border-[#292D2B] text-xs font-mono text-[#8F9691] self-start sm:self-auto">
+        {/* Live Date & Time Chip */}
+        <div className="flex items-center space-x-2 px-3.5 py-1.5 rounded-xl bg-[#171A18]/90 border border-[#292D2B] shadow-sm text-xs font-mono text-[#8F9691] self-start sm:self-auto select-none">
           <Calendar className="w-3.5 h-3.5 text-[#C9FF3D]" />
-          <span>Oct 8, 2026</span>
+          <span className="text-slate-200 font-medium">{dateString}</span>
           <span className="text-[#292D2B]">|</span>
-          <span className="text-[#F5F7F5]">09:24 AM</span>
+          <div className="flex items-center space-x-1.5 text-[#F5F7F5] font-semibold">
+            <Clock className="w-3 h-3 text-[#79DF9B] animate-pulse" />
+            <span className="tabular-nums">{timeString}</span>
+          </div>
         </div>
       </div>
     </div>

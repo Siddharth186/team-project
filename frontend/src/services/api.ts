@@ -54,6 +54,38 @@ export const nexusApi = {
     return res.json();
   },
 
+  async deleteMultipleDocuments(ids: string[]): Promise<any> {
+    const res = await fetch(`${BASE_URL}/documents/bulk-delete`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids })
+    });
+    if (!res.ok) throw new Error('Failed to delete selected documents');
+    return res.json();
+  },
+
+  async deleteBatch(batchId: string): Promise<any> {
+    const res = await fetch(`${BASE_URL}/batches/${batchId}`, {
+      method: 'DELETE'
+    });
+    if (!res.ok) throw new Error('Failed to delete batch');
+    return res.json();
+  },
+
+  async deleteAllDocuments(): Promise<any> {
+    const res = await fetch(`${BASE_URL}/documents/all`, {
+      method: 'DELETE'
+    });
+    if (!res.ok) throw new Error('Failed to clear all documents');
+    return res.json();
+  },
+
+  async getBatches(): Promise<any[]> {
+    const res = await fetch(`${BASE_URL}/batches`);
+    if (!res.ok) throw new Error('Failed to fetch batches');
+    return res.json();
+  },
+
   async getFindings(): Promise<Finding[]> {
     const res = await fetch(`${BASE_URL}/findings`);
     if (!res.ok) throw new Error('Failed to fetch findings');
@@ -78,24 +110,36 @@ export const nexusApi = {
     return res.json();
   },
 
-  async askQuestion(query: string): Promise<QAResponse> {
+  async askQuestion(query: string, history?: any[]): Promise<QAResponse> {
     const res = await fetch(`${BASE_URL}/qa`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query })
+      body: JSON.stringify({ query, history: history || [] })
     });
     if (!res.ok) throw new Error('Failed to execute query');
     return res.json();
   },
 
-  async getReport(): Promise<CaseDecisionReport> {
-    const res = await fetch(`${BASE_URL}/report`);
+  async getReport(options?: { documentId?: string; batchId?: string; targetType?: string }): Promise<any> {
+    const params = new URLSearchParams();
+    if (options?.documentId) params.append('documentId', options.documentId);
+    if (options?.batchId) params.append('batchId', options.batchId);
+    if (options?.targetType) params.append('targetType', options.targetType);
+
+    const queryStr = params.toString() ? `?${params.toString()}` : '';
+    const res = await fetch(`${BASE_URL}/report${queryStr}`);
     if (!res.ok) throw new Error('Failed to fetch report');
     return res.json();
   },
 
   async resetData(): Promise<any> {
     const res = await fetch(`${BASE_URL}/reset`, { method: 'POST' });
+    return res.json();
+  },
+
+  async getModelStatus(): Promise<any> {
+    const res = await fetch(`${BASE_URL}/models/status`);
+    if (!res.ok) throw new Error('Failed to fetch model status');
     return res.json();
   }
 };

@@ -9,22 +9,31 @@ import {
   TrendingUp,
   ArrowRight,
   ShieldAlert,
-  ExternalLink
+  ExternalLink,
+  Boxes,
+  User,
+  Building2,
+  Users
 } from 'lucide-react';
-import { nexusData } from '../../data/demoData';
+import { DocumentItem } from '../../types/nexus';
 
 interface TimelineModalProps {
   isOpen: boolean;
   onClose: () => void;
   onInspectEvidence?: (item?: any) => void;
+  documents?: DocumentItem[];
+  onOpenReport?: (type: 'ALL' | 'DOCUMENT' | 'BATCH', id: string, name: string) => void;
 }
 
 export const TimelineModal: React.FC<TimelineModalProps> = ({
   isOpen,
   onClose,
-  onInspectEvidence
+  onInspectEvidence,
+  documents = [],
+  onOpenReport
 }) => {
   const [selectedEventIndex, setSelectedEventIndex] = useState<number>(3); // Default to the conflicting milestone
+  const [selectedFilterBatch, setSelectedFilterBatch] = useState<string>('all');
 
   if (!isOpen) return null;
 
@@ -32,39 +41,54 @@ export const TimelineModal: React.FC<TimelineModalProps> = ({
     {
       period: "JAN 2026",
       date: "12 Jan 2026",
-      title: "Initial Budget Proposal",
+      title: "Initial Budget Proposal Submission",
       value: "₹10,00,000",
       status: "baseline",
-      statusLabel: "BASELINE",
+      statusLabel: "BASELINE FILING",
       color: "#79DF9B",
+      batchId: "batch-1",
+      batchName: "Batch 1: Initial Ingestion & Proposal",
+      entityAccount: "Arjun Mehta (Managing Director)",
+      entityAvatar: "AM",
+      sharedEntities: ["Solaria Energy LLP"],
       source: "Project_Proposal_Draft.pdf",
       page: 1,
       quote: "Initial capital expenditure estimate approved for Project Alpha: ₹10,00,000 under MSME Scheme Tier-1.",
-      notes: "Project initiated with standard subsidized loan ceiling."
+      notes: "Project initiated with standard subsidized loan ceiling. Filed by Arjun Mehta."
     },
     {
       period: "MAR 2026",
       date: "18 Mar 2026",
-      title: "First Budget Revision",
+      title: "First Budget Escalation & Board Quorum",
       value: "₹12,00,000",
       delta: "+₹2,00,000 (+20%)",
       status: "revised",
       statusLabel: "APPROVED REVISION",
       color: "#79DF9B",
+      batchId: "batch-2",
+      batchName: "Batch 2: Board Minutes & Resolutions",
+      entityAccount: "Dr. Rajesh Varma & Arjun Mehta",
+      entityAvatar: "JOINT",
+      sharedEntities: ["Arjun Mehta", "Dr. Rajesh Varma", "Solaria Energy LLP"],
       source: "Board_Meeting_Minutes.pdf",
       page: 4,
       quote: "Board resolved to increase budget to ₹12,00,000 to cover automated robotic inspection equipment.",
-      notes: "Internal quorum passed unanimous escalation."
+      notes: "Internal quorum passed unanimous escalation co-signed by both promoters."
     },
     {
       period: "JUN 2026",
       date: "04 Jun 2026",
-      title: "Second Budget Revision",
+      title: "Statutory Subsidy Ceiling Sanction",
       value: "₹15,00,000",
       delta: "+₹3,00,000 (+25%)",
       status: "warning",
-      statusLabel: "AT CEILING CAP",
+      statusLabel: "STATUTORY CEILING CAP",
       color: "#FFBD59",
+      batchId: "batch-3",
+      batchName: "Batch 3: Ministry & Subvention NOCs",
+      entityAccount: "Ministry of Renewable Energy (Sanction Authority)",
+      entityAvatar: "MNRE",
+      sharedEntities: ["Solaria Energy LLP", "HDFC Commercial Bank"],
       source: "Grant_Ceiling_Cap.pdf",
       page: 2,
       quote: "Revised grant eligibility capped strictly at ₹15,00,000. Maximum subvention threshold reached.",
@@ -73,12 +97,17 @@ export const TimelineModal: React.FC<TimelineModalProps> = ({
     {
       period: "OCT 2026",
       date: "08 Oct 2026",
-      title: "Commercial Loan Application",
+      title: "Commercial Credit Application Submission",
       value: "₹18,40,000",
       delta: "+₹3,40,000 (CEILING BREACH)",
       status: "critical",
       statusLabel: "CONTRADICTION / BREACH",
       color: "#FF7777",
+      batchId: "batch-4",
+      batchName: "Batch 4: Commercial Loan Filings",
+      entityAccount: "Arjun Mehta & Solaria Energy",
+      entityAvatar: "AM",
+      sharedEntities: ["Arjun Mehta", "Dr. Rajesh Varma (Guarantor)", "HDFC Commercial Bank"],
       source: "Commercial_Loan_Application.pdf",
       page: 2,
       quote: "Requested credit facility amount: ₹18,40,000 with 36-month repayment tenure.",
@@ -86,47 +115,90 @@ export const TimelineModal: React.FC<TimelineModalProps> = ({
     }
   ];
 
-  const activeEvent = timelineEvents[selectedEventIndex];
+  const filteredEvents = selectedFilterBatch === 'all'
+    ? timelineEvents
+    : timelineEvents.filter(e => e.batchId === selectedFilterBatch);
+
+  const activeEvent = timelineEvents[selectedEventIndex] || timelineEvents[0];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto glass-panel-nexus rounded-3xl border border-[#C9FF3D]/30 p-6 sm:p-7 shadow-2xl space-y-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="relative w-full max-w-5xl max-h-[90vh] overflow-y-auto glass-panel-nexus rounded-3xl border border-[#C9FF3D]/30 p-5 sm:p-7 shadow-2xl space-y-5">
+        
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-[#292D2B]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-[#292D2B]">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 rounded-xl bg-[#C9FF3D]/10 border border-[#C9FF3D]/30 flex items-center justify-center text-[#C9FF3D]">
               <Clock className="w-4 h-4" />
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <h3 className="text-base font-bold text-[#F5F7F5] font-mono">
-                  Chronological Audit Trajectory
+                <h3 className="text-sm sm:text-base font-bold text-[#F5F7F5] font-mono">
+                  Batch & Entity-Connected Audit Trajectory
                 </h3>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#FF7777]/15 text-[#FF7777] border border-[#FF7777]/30">
                   Ceiling Breach Detected
                 </span>
               </div>
-              <p className="text-xs text-[#8F9691] font-sans">
-                Temporal fact evolution across revisions from JAN 2026 to OCT 2026
+              <p className="text-[11px] text-[#8F9691] font-sans">
+                Chronological sequence mapped across upload batches and shared entity accounts
               </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-xl text-[#8F9691] hover:text-[#F5F7F5] hover:bg-[#1D211F] transition-colors"
+            className="p-1.5 rounded-xl text-[#8F9691] hover:text-[#F5F7F5] hover:bg-[#1D211F] transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Interactive Stepper / Horizontal Timeline Track */}
+        {/* Batch Filter Bar */}
+        <div className="py-2 px-3 bg-[#111312]/70 rounded-2xl border border-[#292D2B] flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+          <div className="flex items-center space-x-2">
+            <span className="text-[#8F9691] text-[11px] uppercase">Filter by Batch:</span>
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                onClick={() => setSelectedFilterBatch('all')}
+                className={`px-2.5 py-1 rounded-lg text-xs font-mono transition-colors cursor-pointer ${
+                  selectedFilterBatch === 'all'
+                    ? 'bg-[#C9FF3D] text-[#0D0F0E] font-bold'
+                    : 'bg-[#171A18] text-[#8F9691] hover:text-white border border-[#292D2B]'
+                }`}
+              >
+                All Batches
+              </button>
+              {timelineEvents.map((ev) => (
+                <button
+                  key={ev.batchId}
+                  type="button"
+                  onClick={() => setSelectedFilterBatch(ev.batchId)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-mono transition-colors cursor-pointer ${
+                    selectedFilterBatch === ev.batchId
+                      ? 'bg-[#C9FF3D] text-[#0D0F0E] font-bold'
+                      : 'bg-[#171A18] text-[#8F9691] hover:text-white border border-[#292D2B]'
+                  }`}
+                >
+                  {ev.batchName.split(':')[0]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <span className="text-[10px] text-[#8F9691]">
+            {filteredEvents.length} chronological milestones
+          </span>
+        </div>
+
+        {/* Interactive Stepper Track */}
         <div className="p-4 rounded-2xl bg-[#111312] border border-[#292D2B]">
           <span className="text-[10px] font-mono uppercase tracking-wider text-[#8F9691] block mb-3">
-            Timeline Milestones (Click node to inspect)
+            Chronological Sequence (Tap milestone to inspect details)
           </span>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 relative">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 relative">
             {timelineEvents.map((ev, idx) => {
               const isSelected = selectedEventIndex === idx;
               return (
@@ -139,132 +211,136 @@ export const TimelineModal: React.FC<TimelineModalProps> = ({
                       : 'bg-[#171A18]/80 hover:bg-[#171A18] border-[#292D2B] hover:border-[#8F9691]/40'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-mono font-bold text-[#8F9691] group-hover:text-[#F5F7F5]">
-                      {ev.period}
-                    </span>
-                    <span
-                      className="w-2.5 h-2.5 rounded-full"
-                      style={{ backgroundColor: ev.color }}
-                    />
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-[10px] font-mono">
+                      <span className="px-1.5 py-0.5 rounded bg-[#111312] text-[#8F9691] font-bold">
+                        {ev.period}
+                      </span>
+                      <span
+                        className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase"
+                        style={{ color: ev.color, backgroundColor: `${ev.color}15` }}
+                      >
+                        {ev.statusLabel.split(' ')[0]}
+                      </span>
+                    </div>
+
+                    <h4 className="font-mono text-xs font-bold text-[#F5F7F5] group-hover:text-[#C9FF3D] transition-colors line-clamp-2">
+                      {ev.title}
+                    </h4>
                   </div>
 
-                  <div className="space-y-1">
-                    <span className="text-xs font-bold font-mono text-[#F5F7F5] block">
+                  <div className="mt-3 pt-2 border-t border-[#292D2B] flex items-center justify-between">
+                    <span className="font-mono text-xs font-extrabold" style={{ color: ev.color }}>
                       {ev.value}
                     </span>
-                    <span className="text-[10px] text-[#8F9691] truncate block">
-                      {ev.title}
+                    <span className="text-[9px] text-slate-500 font-mono">
+                      {ev.batchName.split(':')[0]}
                     </span>
                   </div>
-
-                  <span
-                    className={`mt-2 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded text-center block ${
-                      ev.status === 'critical'
-                        ? 'bg-[#FF7777]/20 text-[#FF7777]'
-                        : ev.status === 'warning'
-                        ? 'bg-[#FFBD59]/20 text-[#FFBD59]'
-                        : 'bg-[#79DF9B]/20 text-[#79DF9B]'
-                    }`}
-                  >
-                    {ev.statusLabel}
-                  </span>
                 </div>
               );
             })}
           </div>
         </div>
 
-        {/* Milestone Detail Card */}
-        <div className="p-5 rounded-2xl bg-[#171A18] border border-[#292D2B] space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#292D2B]">
-            <div>
-              <div className="flex items-center space-x-2">
-                <span className="text-sm font-bold text-[#F5F7F5] font-mono">
-                  {activeEvent.title} — {activeEvent.date}
-                </span>
-                <span
-                  className="px-2 py-0.5 rounded text-[10px] font-mono font-bold"
-                  style={{
-                    backgroundColor: `${activeEvent.color}20`,
-                    color: activeEvent.color,
-                    border: `1px solid ${activeEvent.color}40`
-                  }}
-                >
-                  {activeEvent.statusLabel}
-                </span>
-              </div>
-              <p className="text-xs text-[#8F9691] mt-0.5 font-sans">
-                {activeEvent.notes}
-              </p>
-            </div>
-
-            <div className="text-right flex-shrink-0">
-              <span className="text-lg font-mono font-extrabold text-[#F5F7F5]">
-                {activeEvent.value}
-              </span>
-              {activeEvent.delta && (
-                <span className="text-[10px] font-mono block text-[#FF7777] font-bold">
-                  {activeEvent.delta}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Verbatim Source Evidence */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between text-[11px] font-mono text-[#8F9691]">
-              <div className="flex items-center space-x-1.5 text-[#C9FF3D]">
-                <FileText className="w-3.5 h-3.5" />
-                <span className="font-semibold">{activeEvent.source} (Page {activeEvent.page})</span>
-              </div>
-              <span>Deterministic Document Citation</span>
-            </div>
-
-            <div className="p-3.5 rounded-xl bg-[#0D0F0E] border border-[#292D2B] text-xs text-[#F5F7F5]/90 italic leading-relaxed">
-              <span className="text-[10px] font-mono not-italic text-[#FFBD59] block mb-1 uppercase tracking-wider">
-                Verbatim Primary Source Extract:
-              </span>
-              "{activeEvent.quote}"
-            </div>
-          </div>
-
-          {/* If Critical, Show Conflict Explanation and Action Button */}
-          {activeEvent.status === 'critical' && (
-            <div className="p-4 rounded-xl bg-[#FF7777]/10 border border-[#FF7777]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-start space-x-2.5 text-xs text-[#FF7777]">
-                <ShieldAlert className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-mono font-bold block">Temporal Variance Alert</span>
-                  <span className="font-sans text-[#F5F7F5]/90 text-[11px]">
-                    The ₹18.4L loan application breaches the sanctioned ₹15.0L scheme subsidy ceiling by ₹3,40,000 without corresponding co-promoter collateral.
+        {/* Detailed Milestone Inspector Card */}
+        {activeEvent && (
+          <div className="p-5 rounded-2xl bg-[#141715] border border-[#292D2B] space-y-4 font-mono text-xs">
+            {/* Top row */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#292D2B]">
+              <div className="space-y-1">
+                <div className="flex items-center space-x-2">
+                  <span className="px-2 py-0.5 rounded bg-[#C9FF3D]/15 text-[#C9FF3D] text-[10px] font-bold">
+                    {activeEvent.batchName}
                   </span>
+                  <span className="text-[#8F9691] text-[10px] flex items-center space-x-1">
+                    <Calendar className="w-3 h-3" />
+                    <span>{activeEvent.date}</span>
+                  </span>
+                </div>
+                <h3 className="text-sm font-bold text-white">
+                  {activeEvent.title}
+                </h3>
+              </div>
+
+              <div className="flex items-center space-x-3 flex-shrink-0">
+                <div className="text-right">
+                  <span className="text-[9px] text-[#8F9691] block uppercase">Milestone Value</span>
+                  <span className="text-base font-extrabold" style={{ color: activeEvent.color }}>
+                    {activeEvent.value}
+                  </span>
+                </div>
+                {activeEvent.delta && (
+                  <span className="px-2 py-1 rounded-lg bg-[#FF7777]/20 text-[#FF7777] border border-[#FF7777]/40 text-[10px] font-bold">
+                    {activeEvent.delta}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Entity Account & Shared Connections Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Entity in Charge */}
+              <div className="p-3 rounded-xl bg-[#0D0F0E] border border-[#292D2B] space-y-1">
+                <span className="text-[9px] uppercase text-[#8F9691] block">Primary Entity Account</span>
+                <div className="flex items-center space-x-2 text-white font-semibold">
+                  <User className="w-3.5 h-3.5 text-[#C9FF3D]" />
+                  <span>{activeEvent.entityAccount}</span>
                 </div>
               </div>
 
-              {onInspectEvidence && (
-                <button
-                  onClick={() => {
-                    onClose();
-                    onInspectEvidence(nexusData.recentIntelligence[0]);
-                  }}
-                  className="px-4 py-2 rounded-xl bg-[#C9FF3D] hover:bg-[#bbf030] text-[#0D0F0E] font-bold text-xs font-mono uppercase tracking-wider whitespace-nowrap shadow-[0_0_12px_rgba(201,255,61,0.3)]"
-                >
-                  Inspect in Evidence Drawer
-                </button>
-              )}
+              {/* Shared Intersecting Entities */}
+              <div className="p-3 rounded-xl bg-[#0D0F0E] border border-[#292D2B] space-y-1">
+                <span className="text-[9px] uppercase text-[#8F9691] block">Shared Intersecting Parties</span>
+                <div className="flex flex-wrap gap-1">
+                  {activeEvent.sharedEntities.map((ent: string, i: number) => (
+                    <span key={i} className="px-2 py-0.5 rounded-md bg-[#1D211F] text-[#38BDF8] text-[10px]">
+                      {ent}
+                    </span>
+                  ))}
+                </div>
+              </div>
             </div>
-          )}
-        </div>
+
+            {/* Grounded Source Excerpt */}
+            <div className="p-3.5 rounded-xl bg-[#0D0F0E] border border-[#292D2B] space-y-2">
+              <div className="flex items-center justify-between text-[11px]">
+                <div className="flex items-center space-x-2 text-white font-semibold">
+                  <FileText className="w-3.5 h-3.5 text-[#C9FF3D]" />
+                  <span>{activeEvent.source}</span>
+                  <span className="text-slate-500">Page {activeEvent.page}</span>
+                </div>
+
+                {onOpenReport && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenReport('DOCUMENT', activeEvent.source, activeEvent.source)}
+                    className="px-2.5 py-1 rounded-lg bg-[#171A18] hover:bg-[#C9FF3D] hover:text-[#0D0F0E] text-[#C9FF3D] border border-[#C9FF3D]/30 transition-colors flex items-center space-x-1 cursor-pointer"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    <span>View File Report</span>
+                  </button>
+                )}
+              </div>
+
+              <p className="text-[11px] text-slate-300 italic font-sans bg-[#141715] p-2.5 rounded-lg border border-[#292D2B]">
+                "{activeEvent.quote}"
+              </p>
+              <p className="text-[11px] text-slate-400 font-sans">
+                <strong>Analysis Note:</strong> {activeEvent.notes}
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
-        <div className="pt-3 border-t border-[#292D2B] flex items-center justify-between text-xs font-mono">
-          <span className="text-[#8F9691] text-[11px]">
-            4 chronological revisions reconciled by Member 2 Temporal Analyzer
+        <div className="pt-2.5 border-t border-[#292D2B] flex items-center justify-between flex-shrink-0 text-xs font-mono">
+          <span className="text-[10px] text-[#8F9691]">
+            NEXUS Temporal Trajectory Engine • Grounded Multi-Year Timeline
           </span>
           <button
             onClick={onClose}
-            className="px-4 py-1.5 rounded-xl bg-[#1D211F] hover:bg-[#292D2B] text-[#F5F7F5] border border-[#292D2B] transition-colors"
+            className="px-4 py-1.5 rounded-xl bg-[#171A18] hover:bg-[#1D211F] text-[#8F9691] hover:text-white border border-[#292D2B] transition-colors cursor-pointer"
           >
             Close Timeline
           </button>

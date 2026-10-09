@@ -29,6 +29,10 @@ export class IntelligenceServer {
   }
 
   public storeReport(report: IntelligenceReport): void {
+    if (this.reportsStore.size >= 20) {
+      const oldestKey = this.reportsStore.keys().next().value;
+      if (oldestKey) this.reportsStore.delete(oldestKey);
+    }
     this.reportsStore.set(report.case_id, report);
   }
 
@@ -54,7 +58,7 @@ export class IntelligenceServer {
 
       try {
         // Health check
-        if (pathname === '/api/v1/health' && req.method === 'GET') {
+        if ((pathname === '/api/v1/health' || pathname === '/health') && req.method === 'GET') {
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(
             JSON.stringify({
@@ -79,7 +83,7 @@ export class IntelligenceServer {
           }
 
           const report = this.pipeline.processCase(payload);
-          this.reportsStore.set(report.case_id, report);
+          this.storeReport(report);
 
           res.writeHead(201, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify(report, null, 2));
@@ -103,8 +107,8 @@ export class IntelligenceServer {
           return;
         }
 
-        // GET /api/v1/findings?case_id=...&type=...&severity=...
-        if (pathname === '/api/v1/findings' && req.method === 'GET') {
+        // GET /api/v1/findings or /api/intelligence/findings
+        if ((pathname === '/api/v1/findings' || pathname === '/api/intelligence/findings') && req.method === 'GET') {
           const caseId = reqUrl.searchParams.get('case_id');
           const type = reqUrl.searchParams.get('type');
           const severity = reqUrl.searchParams.get('severity');
@@ -123,7 +127,25 @@ export class IntelligenceServer {
           }
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ total: findings.length, findings }, null, 2));
+          if (pathname === '/api/intelligence/findings') {
+            res.end(JSON.stringify(findings, null, 2));
+          } else {
+            res.end(JSON.stringify({ total: findings.length, findings }, null, 2));
+          }
+          return;
+        }
+
+        // GET /api/v1/facts or /api/intelligence/facts
+        if ((pathname === '/api/v1/facts' || pathname === '/api/intelligence/facts') && req.method === 'GET') {
+          const caseId = reqUrl.searchParams.get('case_id');
+          let facts = Array.from(this.reportsStore.values()).flatMap(r => r.all_facts);
+          if (caseId) {
+            const r = this.reportsStore.get(caseId);
+            facts = r ? r.all_facts : [];
+          }
+
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(facts, null, 2));
           return;
         }
 

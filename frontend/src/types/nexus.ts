@@ -11,6 +11,22 @@ export interface DocumentItem {
   processingProgress: number;
   documentCategory: string;
   errorMessage?: string;
+  batchId?: string;
+  batchName?: string;
+  report?: any;
+  documentSpecs?: any;
+  tags?: string[];
+}
+
+export interface BatchGroup {
+  batchId: string;
+  batchName: string;
+  uploadedAt: string;
+  documents: DocumentItem[];
+  totalFiles: number;
+  totalSize: number;
+  status: DocumentProcessingStatus;
+  findingsCount?: number;
 }
 
 export interface EvidenceSource {

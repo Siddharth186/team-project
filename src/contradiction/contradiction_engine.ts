@@ -64,17 +64,70 @@ export class ContradictionEngine {
 
   /**
    * Compares facts within a single (entity_id, attribute) cluster.
+   * Optimally groups by distinct values to eliminate O(N^2) memory explosion on large document sets.
    */
   private compareFactsInCluster(cluster: FactCluster): Finding[] {
     const findings: Finding[] = [];
     const facts = cluster.facts;
     const isInvariant = INVARIANT_ATTRIBUTES.has(cluster.attribute);
 
-    // Pairwise or grouped comparison
-    for (let i = 0; i < facts.length; i++) {
-      for (let j = i + 1; j < facts.length; j++) {
-        const factA = facts[i];
-        const factB = facts[j];
+    // Group facts by standardized value
+    const valueGroups = new Map<string, Fact[]>();
+    for (const f of facts) {
+      const vKey = f.normalized_value?.standardized_representation ?? String(f.normalized_value?.raw_value ?? 'unknown');
+      if (!valueGroups.has(vKey)) {
+        valueGroups.set(vKey, []);
+      }
+      valueGroups.get(vKey)!.push(f);
+    }
+
+    const distinctGroupKeys = Array.from(valueGroups.keys());
+
+    // 1. If all facts agree on the same value across multiple documents
+    if (distinctGroupKeys.length === 1 && facts.length >= 2) {
+      const sampleA = facts[0];
+      const sampleB = facts[1];
+      const sameDoc = facts.every(f => f.evidence.document_id === sampleA.evidence.document_id);
+      const type: FindingType = sameDoc ? 'DUPLICATE' : 'CONSISTENT';
+      const docCount = new Set(facts.map(f => f.evidence.document_name)).size;
+      
+      const title = sameDoc
+        ? `Duplicate Fact: ${cluster.attribute}`
+        : `Verified Cross-Document Consistency: ${cluster.attribute}`;
+      const description = sameDoc
+        ? `Identical claim of ${sampleA.normalized_value.standardized_representation} appears ${facts.length} times within ${sampleA.evidence.document_name}.`
+        : `Consistent value ${sampleA.normalized_value.standardized_representation} independently verified across ${docCount} documents.`;
+
+      const confidence = this.confidenceEngine.calculateConfidence({
+        facts: [sampleA, sampleB],
+        comparisonType: type,
+        valueDiscrepancy: 0,
+      });
+
+      findings.push({
+        finding_id: this.generateFindingId(),
+        type,
+        severity: 'INFORMATIONAL',
+        title,
+        description,
+        entity_id: cluster.entity_id,
+        attribute: cluster.attribute,
+        facts: facts.slice(0, 4),
+        evidence: facts.slice(0, 4).map(f => f.evidence),
+        confidence,
+        timestamp: new Date().toISOString(),
+      });
+      return findings;
+    }
+
+    // 2. Compare distinct value groups (O(K^2) where K is distinct values, max K <= 5)
+    for (let i = 0; i < distinctGroupKeys.length && findings.length < 15; i++) {
+      for (let j = i + 1; j < distinctGroupKeys.length && findings.length < 15; j++) {
+        const groupA = valueGroups.get(distinctGroupKeys[i])!;
+        const groupB = valueGroups.get(distinctGroupKeys[j])!;
+
+        const factA = groupA[0];
+        const factB = groupB[0];
 
         const comparison = this.compareFactPair(factA, factB, isInvariant, cluster.attribute);
         if (comparison) {

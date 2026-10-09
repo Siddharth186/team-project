@@ -108,7 +108,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               <Clock className="w-3.5 h-3.5 text-[#C9FF3D]" />
               <span className="text-[10px] uppercase">Session Sync</span>
             </div>
-            <span className="text-[#F5F7F5] font-bold block">09:24 AM IST</span>
+            <span className="text-[#F5F7F5] font-bold block">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} Live</span>
             <span className="text-[9px] text-[#79DF9B] block">Deterministic Pipeline Live</span>
           </div>
         </div>

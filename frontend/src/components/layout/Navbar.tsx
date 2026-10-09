@@ -39,29 +39,27 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenSearch,
   onOpenUpload,
   onOpenProfile,
-  counts = { documents: 24, intelligence: 3, conflicts: 7, missingData: 4 }
+  counts = { documents: 24, intelligence: 36, conflicts: 7, missingData: 4 }
 }) => {
+  const totalFindings = (counts.intelligence || 0) + (counts.conflicts || 0);
+
   const navItems = [
     { id: 'overview', label: 'Home', icon: Layers },
     { id: 'documents', label: 'Documents', icon: FileText, badge: counts.documents },
-    { id: 'intelligence', label: 'Intelligence', icon: Sparkles, badge: counts.intelligence },
+    {
+      id: 'intelligence',
+      label: 'Intelligence',
+      icon: Sparkles,
+      badge: counts.intelligence || 36
+    },
     {
       id: 'conflicts',
-      label: 'Conflicts',
+      label: 'Conflicts & Audit',
       icon: AlertTriangle,
       badge: counts.conflicts,
-      subBadge: '2 critical',
+      subBadge: counts.conflicts > 0 ? `${counts.conflicts} critical` : undefined,
       subBadgeColor: '#FF7777'
     },
-    {
-      id: 'missing-data',
-      label: 'Missing data',
-      icon: HelpCircle,
-      badge: counts.missingData,
-      subBadge: '1 critical',
-      subBadgeColor: '#FF7777'
-    },
-    { id: 'evidence', label: 'Evidence', icon: FileCheck },
     { id: 'knowledge-graph', label: 'Knowledge Graph', icon: Share2 },
     { id: 'timeline', label: 'Timeline', icon: Clock }
   ];

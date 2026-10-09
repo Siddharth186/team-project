@@ -19,3 +19,5 @@ yarn-error.log*
 .env.local
 .DS_Store
 Thumbs.db
+*.exe
+OllamaSetup.exe

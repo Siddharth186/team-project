@@ -29,14 +29,14 @@ export const AntigravityScene: React.FC<AntigravitySceneProps> = ({ isProcessing
     camera.position.z = 220;
     camera.position.y = 15;
 
-    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'high-performance' });
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: false, powerPreference: 'high-performance' });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
     renderer.setClearColor(0x000000, 0); // Transparent background
     container.appendChild(renderer.domElement);
 
-    // 1. Floating Information Nodes & Constellation Lines (Optimized nodeCount for silky 60fps)
-    const nodeCount = 75;
+    // 1. Floating Information Nodes & Constellation Lines (Lightweight nodeCount for silky 60fps)
+    const nodeCount = 35;
     const geometry = new THREE.BufferGeometry();
     const positions = new Float32Array(nodeCount * 3);
     const velocities: Array<{ x: number; y: number; z: number }> = [];
@@ -114,12 +114,111 @@ export const AntigravityScene: React.FC<AntigravitySceneProps> = ({ isProcessing
     const linesMesh = new THREE.LineSegments(linesGeometry, lineMaterial);
     scene.add(linesMesh);
 
-    // 2. Faint Perspective Grid on floor
-    const gridHelper = new THREE.GridHelper(600, 30, isLight ? 0xCAD8CE : 0x292D2B, isLight ? 0xE2ECE4 : 0x141816);
-    gridHelper.position.y = -100;
-    gridHelper.material.transparent = true;
-    gridHelper.material.opacity = isLight ? 0.15 : 0.25;
-    scene.add(gridHelper);
+    // 2. Lighting for 3D Translucent Documents
+    const ambientLight = new THREE.AmbientLight(0xffffff, isLight ? 1.0 : 0.85);
+    scene.add(ambientLight);
+
+    const dirLight1 = new THREE.DirectionalLight(isLight ? 0x0F5132 : 0xC9FF3D, 0.9);
+    dirLight1.position.set(100, 150, 100);
+    scene.add(dirLight1);
+
+    const dirLight2 = new THREE.DirectionalLight(0x38BDF8, 0.6);
+    dirLight2.position.set(-100, -100, 80);
+    scene.add(dirLight2);
+
+    // Procedural 3D Document Texture Generator
+    const createDocTexture = (colorHex: string, titleText: string, isLightMode: boolean) => {
+      const texCanvas = document.createElement('canvas');
+      texCanvas.width = 512;
+      texCanvas.height = 724;
+      const ctx = texCanvas.getContext('2d');
+      if (!ctx) return new THREE.Texture();
+
+      // Translucent Paper Surface
+      ctx.fillStyle = isLightMode ? 'rgba(255, 255, 255, 0.95)' : 'rgba(23, 26, 24, 0.92)';
+      ctx.beginPath();
+      if (typeof ctx.roundRect === 'function') {
+        ctx.roundRect(12, 12, 488, 700, 20);
+      } else {
+        ctx.rect(12, 12, 488, 700);
+      }
+      ctx.fill();
+
+      // Paper Border
+      ctx.strokeStyle = colorHex;
+      ctx.lineWidth = 5;
+      ctx.stroke();
+
+      // Top Title Bar
+      ctx.fillStyle = colorHex;
+      ctx.fillRect(45, 55, 170, 24);
+
+      ctx.fillStyle = isLightMode ? 'rgba(45, 90, 64, 0.3)' : 'rgba(143, 150, 145, 0.4)';
+      ctx.fillRect(235, 60, 120, 15);
+
+      // Divider Line
+      ctx.fillStyle = isLightMode ? 'rgba(15, 81, 50, 0.2)' : 'rgba(41, 45, 43, 0.8)';
+      ctx.fillRect(45, 100, 422, 3);
+
+      // Paragraph Lines
+      ctx.fillStyle = isLightMode ? 'rgba(45, 90, 64, 0.35)' : 'rgba(143, 150, 145, 0.35)';
+      for (let y = 135; y < 580; y += 28) {
+        const lineWidth = 340 + Math.sin(y) * 60;
+        ctx.fillRect(45, y, lineWidth, 9);
+      }
+
+      // Circular Stamp
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(380, 620, 50, 0, Math.PI * 2);
+      ctx.strokeStyle = colorHex;
+      ctx.lineWidth = 4;
+      ctx.setLineDash([6, 4]);
+      ctx.stroke();
+
+      ctx.fillStyle = colorHex;
+      ctx.font = 'bold 13px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(titleText, 380, 615);
+      ctx.fillText('3D VERIFIED', 380, 632);
+      ctx.restore();
+
+      return new THREE.CanvasTexture(texCanvas);
+    };
+
+    // 3D Documents Group
+    const documentsGroup = new THREE.Group();
+    scene.add(documentsGroup);
+
+    const docGeo = new THREE.BoxGeometry(32, 45, 0.3);
+    const docConfigs = [
+      { x: 95, y: 35, z: 20, rx: 0.15, ry: -0.38, rz: 0.08, scale: 1.05, color: isLight ? '#0F5132' : '#C9FF3D', title: 'NEXUS AI', offset: 0 },
+      { x: -105, y: -20, z: -10, rx: -0.2, ry: 0.42, rz: -0.1, scale: 0.95, color: isLight ? '#1B4332' : '#38BDF8', title: 'LOAN DOSSIER', offset: 2 },
+      { x: 75, y: -65, z: -30, rx: 0.28, ry: -0.22, rz: 0.14, scale: 0.85, color: isLight ? '#2D5A40' : '#A78BFA', title: 'BANK STMT', offset: 4 },
+      { x: -80, y: 70, z: -25, rx: -0.12, ry: 0.28, rz: -0.06, scale: 0.9, color: isLight ? '#0A3D25' : '#79DF9B', title: 'TAX AUDIT', offset: 1.5 }
+    ];
+
+    const docMeshes: Array<{ mesh: THREE.Mesh; cfg: typeof docConfigs[0]; initialY: number; initialX: number; tex: THREE.Texture; mat: THREE.Material }> = [];
+
+    docConfigs.forEach((cfg) => {
+      const tex = createDocTexture(cfg.color, cfg.title, isLight);
+      const mat = new THREE.MeshStandardMaterial({
+        map: tex,
+        transparent: true,
+        opacity: isLight ? 0.75 : 0.65,
+        roughness: 0.35,
+        metalness: 0.1,
+        side: THREE.DoubleSide
+      });
+
+      const mesh = new THREE.Mesh(docGeo, mat);
+      mesh.position.set(cfg.x, cfg.y, cfg.z);
+      mesh.rotation.set(cfg.rx, cfg.ry, cfg.rz);
+      mesh.scale.set(cfg.scale, cfg.scale, cfg.scale);
+
+      documentsGroup.add(mesh);
+      docMeshes.push({ mesh, cfg, initialY: cfg.y, initialX: cfg.x, tex, mat });
+    });
 
     // Mouse tracking for subtle parallax
     let targetMouseX = 0;
@@ -212,6 +311,15 @@ export const AntigravityScene: React.FC<AntigravitySceneProps> = ({ isProcessing
           }
         }
 
+        // Animate floating 3D translucent documents
+        docMeshes.forEach(({ mesh, cfg, initialY }) => {
+          mesh.position.y = initialY + Math.sin(frameCount * 0.02 + cfg.offset) * 4;
+          mesh.position.x = cfg.x + Math.cos(frameCount * 0.015 + cfg.offset) * 2 + mouseX * 0.25;
+          mesh.rotation.y = cfg.ry + Math.sin(frameCount * 0.012 + cfg.offset) * 0.08 + mouseX * 0.004;
+          mesh.rotation.x = cfg.rx + Math.cos(frameCount * 0.01 + cfg.offset) * 0.05 - mouseY * 0.004;
+          mesh.rotation.z = cfg.rz + Math.sin(frameCount * 0.008 + cfg.offset) * 0.03;
+        });
+
         geometry.attributes.position.needsUpdate = true;
         if (frameCount % 2 === 0) {
           linesGeometry.attributes.position.needsUpdate = true;
@@ -234,6 +342,11 @@ export const AntigravityScene: React.FC<AntigravitySceneProps> = ({ isProcessing
       particleMaterial.dispose();
       linesGeometry.dispose();
       lineMaterial.dispose();
+      docGeo.dispose();
+      docMeshes.forEach(d => {
+        d.tex.dispose();
+        d.mat.dispose();
+      });
       renderer.dispose();
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);

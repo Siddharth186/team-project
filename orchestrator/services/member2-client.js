@@ -8,7 +8,7 @@
  */
 
 export class Member2Client {
-  constructor(baseUrl = process.env.MEMBER2_URL || 'http://localhost:8000') {
+  constructor(baseUrl = process.env.MEMBER2_URL || 'http://localhost:3002') {
     this.baseUrl = baseUrl;
     this.isLive = false;
     this.lastChecked = null;
@@ -61,6 +61,25 @@ export class Member2Client {
       if (res.ok) return await res.json();
     } catch {
       // Fallback
+    }
+    return null;
+  }
+
+  async processCase(payload) {
+    if (!this.isLive) await this.checkHealth();
+    if (this.isLive) {
+      try {
+        const res = await fetch(`${this.baseUrl}/api/v1/intelligence/process`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          return await res.json();
+        }
+      } catch (err) {
+        console.warn('[MEMBER 2 CLIENT] Process case failed:', err.message);
+      }
     }
     return null;
   }
