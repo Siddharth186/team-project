@@ -198,7 +198,7 @@ export class CaseReportGenerator {
     return {
       reportType: 'OVERALL_DOSSIER',
       caseId: "NEXUS-CASE-2026-0891A",
-      caseTitle: `Comprehensive Case Decision Intelligence Report (${docs.length} Documents)`,
+      caseTitle: "Case Decision Intelligence Report",
       targetName: 'Full Ingested Dossier',
       targetId: 'all',
       caseType: "LOAN_VERIFICATION",
@@ -289,5 +289,83 @@ export class CaseReportGenerator {
 
     md += `*Notice: ${report.disclaimer}*\n`;
     return md;
+  }
+
+  /**
+   * Map-Reduce Document Summarization
+   * Chunks long documents, summarizes each chunk with local LLM, then synthesizes into structured sections
+   */
+  async summarizeDocumentMapReduce(doc, ollamaService = null) {
+    const docName = doc.name || 'document';
+    const textContent = doc.extractedText || doc.text || doc.content || '';
+
+    // If text is small or Ollama is unavailable, return deterministic structured summary
+    if (!ollamaService || !textContent || !(await ollamaService.isReachable())) {
+      return {
+        executiveSummary: `NEXUS AI processed "${docName}". Facts and entities extracted into case ledger.`,
+        keyFacts: (this.dataSource.facts || []).filter(f => f.source?.documentName === docName).slice(0, 10),
+        entities: (this.dataSource.entities || []).slice(0, 8).map(e => e.name),
+        dates: [],
+        amounts: [],
+        risks: []
+      };
+    }
+
+    // Split text into chunks (~3500 chars to comfortably fit context window)
+    const chunkSize = 3500;
+    const textChunks = [];
+    for (let i = 0; i < textContent.length; i += chunkSize) {
+      textChunks.push(textContent.slice(i, i + chunkSize));
+    }
+
+    if (textChunks.length === 0) {
+      textChunks.push(textContent);
+    }
+
+    // Map Step: Summarize each chunk
+    const chunkSummaries = [];
+    for (let idx = 0; idx < textChunks.length; idx++) {
+      const chunkText = textChunks[idx];
+      const mapPrompt = `Document: "${docName}" (Chunk ${idx + 1} of ${textChunks.length})\n\nContent:\n${chunkText}\n\nSummarize key facts, entities, dates, amounts, and potential risks from this chunk into pure JSON.`;
+      const res = await ollamaService.generateChat([
+        {
+          role: 'system',
+          content: 'You are NEXUS AI Document Intelligence Engine. Output valid JSON with keys: executive_summary (string), key_facts (array of strings), entities (array of strings), dates (array of strings), amounts (array of strings), risks (array of strings). Do not include thinking tokens or markdown fences.'
+        },
+        { role: 'user', content: mapPrompt }
+      ], { json: true, temperature: 0.3 });
+
+      if (res.success && res.parsedJson) {
+        chunkSummaries.push(res.parsedJson);
+      } else if (res.success && res.content) {
+        chunkSummaries.push({ executive_summary: res.content });
+      }
+    }
+
+    // Reduce Step: Synthesize into final summary if multiple chunks
+    if (chunkSummaries.length > 1) {
+      const combinedText = chunkSummaries.map((s, i) => `[Chunk ${i + 1} Summary]: ${s.executive_summary || JSON.stringify(s)}`).join('\n\n');
+      const reducePrompt = `Document: "${docName}"\nSynthesize the following chunk summaries into a cohesive single executive summary and consolidated structured points in pure JSON:\n\n${combinedText}`;
+      const reduceRes = await ollamaService.generateChat([
+        {
+          role: 'system',
+          content: 'You are NEXUS AI Document Intelligence Engine. Synthesize the chunk summaries into a consolidated summary. Output valid JSON with keys: executive_summary (string), key_facts (array of strings), entities (array of strings), dates (array of strings), amounts (array of strings), risks (array of strings). Do not include thinking tokens.'
+        },
+        { role: 'user', content: reducePrompt }
+      ], { json: true, temperature: 0.3 });
+
+      if (reduceRes.success && reduceRes.parsedJson) {
+        return reduceRes.parsedJson;
+      }
+    }
+
+    return chunkSummaries[0] || {
+      executiveSummary: `NEXUS AI completed analysis for document "${docName}".`,
+      keyFacts: [],
+      entities: [],
+      dates: [],
+      amounts: [],
+      risks: []
+    };
   }
 }

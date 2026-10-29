@@ -21,7 +21,19 @@ import { Sparkles, Calendar, Clock } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 export function App() {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(() => {
+    try {
+      return sessionStorage.getItem('nexus_active_tab') || 'overview';
+    } catch {
+      return 'overview';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('nexus_active_tab', activeTab);
+    } catch {}
+  }, [activeTab]);
   const [isDark, setIsDark] = useState(true);
   const [cursorMode, setCursorMode] = useState<CursorMode>('NORMAL');
   const [liveNow, setLiveNow] = useState<Date>(new Date());
@@ -340,6 +352,12 @@ export function App() {
               <DocumentSummary
                 documents={documentsList}
                 onViewAll={() => setUploadOpen(true)}
+                onClearAll={async () => {
+                  await nexusApi.deleteAllDocuments();
+                  await refreshData();
+                  setToastMessage('Cleared all documents from workspace');
+                  setTimeout(() => setToastMessage(null), 3000);
+                }}
                 onSelectDocument={(doc) => {
                   handleOpenReport('DOCUMENT', doc.id, doc.name);
                 }}

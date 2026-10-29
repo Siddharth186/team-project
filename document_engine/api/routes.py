@@ -1,5 +1,6 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
+from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 from ..schemas.api_models import (
     DocumentIntelligenceResponse,
@@ -135,4 +136,72 @@ def extract_from_raw_text(
         facts=facts,
         relationships=relationships,
         evidence=evidence
+    )
+
+
+# --- UNIVERSAL MULTI-FORMAT DOCUMENT GENERATION ENDPOINTS ---
+from ..generation.generator import UniversalDocumentGenerator
+
+class PdfGenerateRequest(BaseModel):
+    title: str
+    subtitle: Optional[str] = "NEXUS AI Grounded Intelligence Dossier"
+    sections: Optional[List[Dict[str, Any]]] = None
+    code_snippets: Optional[List[Dict[str, str]]] = None
+    tables: Optional[List[Dict[str, Any]]] = None
+    citations: Optional[List[str]] = None
+    filename: Optional[str] = None
+
+class ExcelGenerateRequest(BaseModel):
+    title: str
+    sheets_data: Dict[str, List[Dict[str, Any]]]
+    filename: Optional[str] = None
+
+class DiagramGenerateRequest(BaseModel):
+    topic: str
+    title: Optional[str] = "System Architecture & Flow Diagram"
+    filename: Optional[str] = None
+
+class DocxGenerateRequest(BaseModel):
+    title: str
+    subtitle: Optional[str] = "NEXUS AI Grounded Intelligence Dossier"
+    sections: Optional[List[Dict[str, Any]]] = None
+    code_snippets: Optional[List[Dict[str, str]]] = None
+    filename: Optional[str] = None
+
+@router.post("/generate/pdf")
+def generate_pdf_endpoint(req: PdfGenerateRequest):
+    return UniversalDocumentGenerator.generate_pdf(
+        title=req.title,
+        subtitle=req.subtitle or "NEXUS AI Grounded Intelligence Dossier",
+        sections=req.sections,
+        code_snippets=req.code_snippets,
+        tables=req.tables,
+        citations=req.citations,
+        filename=req.filename
+    )
+
+@router.post("/generate/excel")
+def generate_excel_endpoint(req: ExcelGenerateRequest):
+    return UniversalDocumentGenerator.generate_excel(
+        title=req.title,
+        sheets_data=req.sheets_data,
+        filename=req.filename
+    )
+
+@router.post("/generate/diagram")
+def generate_diagram_endpoint(req: DiagramGenerateRequest):
+    return UniversalDocumentGenerator.generate_diagram(
+        topic=req.topic,
+        title=req.title or "System Architecture & Flow Diagram",
+        filename=req.filename
+    )
+
+@router.post("/generate/docx")
+def generate_docx_endpoint(req: DocxGenerateRequest):
+    return UniversalDocumentGenerator.generate_docx(
+        title=req.title,
+        subtitle=req.subtitle or "NEXUS AI Grounded Intelligence Dossier",
+        sections=req.sections,
+        code_snippets=req.code_snippets,
+        filename=req.filename
     )

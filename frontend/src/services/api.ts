@@ -9,7 +9,14 @@ import {
   QAResponse
 } from '../types/nexus';
 
-const BASE_URL = '/api';
+const API_ORIGIN = (import.meta.env.VITE_API_URL ? String(import.meta.env.VITE_API_URL) : '').replace(/\/$/, '');
+const BASE_URL = `${API_ORIGIN}/api`;
+
+export const getArtifactUrl = (url?: string): string => {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `${API_ORIGIN}${url}`;
+};
 
 export const nexusApi = {
   async getStatus(): Promise<any> {
@@ -140,6 +147,16 @@ export const nexusApi = {
   async getModelStatus(): Promise<any> {
     const res = await fetch(`${BASE_URL}/models/status`);
     if (!res.ok) throw new Error('Failed to fetch model status');
+    return res.json();
+  },
+
+  async generateArtifact(type: 'pdf' | 'excel' | 'diagram' | 'docx', payload: any): Promise<any> {
+    const res = await fetch(`${BASE_URL}/generate/${type}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error(`Failed to generate ${type}`);
     return res.json();
   }
 };

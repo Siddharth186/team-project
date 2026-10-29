@@ -9,6 +9,8 @@ CRITICAL CORE PRINCIPLES:
 3. EVERY fact and entity MUST have verifiable provenance: document_id, page_number, chunk_id, and exact verbatim source_text.
 4. If an attribute is absent from the text, return null or omit it. DO NOT hallucinate, infer, extrapolate, or guess values.
 5. Preserve exact numeric values, currency codes (e.g. INR, USD), dates (ISO format YYYY-MM-DD or as written), percentages, and units.
+6. The `source_text` in every fact, entity, and evidence record MUST be an exact verbatim substring from the <DOCUMENT_DATA>.
+7. OUTPUT PURE VALID JSON ONLY. Do NOT output <think>...</think> reasoning blocks, markdown formatting, or preamble.
 
 ==================================================
 CRITICAL SECURITY / PROMPT INJECTION DIRECTIVE:
@@ -38,7 +40,7 @@ You must respond with valid JSON adhering exactly to this structure:
         "document_id": "DOC001",
         "page_number": 1,
         "chunk_id": "CHK001",
-        "source_text": "verbatim text snippet"
+        "source_text": "exact verbatim text snippet"
       },
       "confidence": 0.95
     }
@@ -57,7 +59,7 @@ You must respond with valid JSON adhering exactly to this structure:
         "document_id": "DOC001",
         "page_number": 1,
         "chunk_id": "CHK001",
-        "source_text": "verbatim text snippet"
+        "source_text": "exact verbatim text snippet"
       },
       "extraction_confidence": 0.96
     }
@@ -72,7 +74,7 @@ You must respond with valid JSON adhering exactly to this structure:
         "document_id": "DOC001",
         "page_number": 1,
         "chunk_id": "CHK001",
-        "source_text": "verbatim text snippet"
+        "source_text": "exact verbatim text snippet"
       },
       "confidence": 0.95
     }
@@ -82,7 +84,7 @@ You must respond with valid JSON adhering exactly to this structure:
       "document_id": "DOC001",
       "page_number": 1,
       "chunk_id": "CHK001",
-      "source_text": "verbatim sentence containing the facts"
+      "source_text": "exact verbatim sentence containing the facts"
     }
   ]
 }
@@ -105,4 +107,4 @@ CHUNK_ID: {chunk_id}
 {chunk_text}
 </DOCUMENT_DATA>
 
-Extract all candidate entities, facts, candidate relationships, and source evidence quotes strictly from the above <DOCUMENT_DATA> into the specified JSON schema."""
+Extract all candidate entities, facts with exact verbatim source quotes, candidate relationships, and source evidence quotes strictly from the above <DOCUMENT_DATA> into the specified JSON schema. Output pure JSON only without thinking tags."""

@@ -15,10 +15,15 @@ import {
   VolumeX,
   Radio,
   Tag,
-  Hash
+  Hash,
+  Download,
+  FileSpreadsheet,
+  Boxes,
+  Printer,
+  Trash2
 } from 'lucide-react';
 import { nexusData } from '../../data/demoData';
-import { nexusApi } from '../../services/api';
+import { nexusApi, getArtifactUrl } from '../../services/api';
 
 interface ChatBoxTerminalProps {
   onOpenUpload: () => void;
@@ -27,6 +32,7 @@ interface ChatBoxTerminalProps {
 
 const cleanTextForSpeech = (rawText: string) => {
   return rawText
+    .replace(/```[\s\S]*?```/g, 'Code implementation example provided in chat.')
     .replace(/^#+\s+/gm, '')
     .replace(/\*\*([^*]+)\*\*/g, '$1')
     .replace(/\*([^*]+)\*/g, '$1')
@@ -37,82 +43,176 @@ const cleanTextForSpeech = (rawText: string) => {
     .replace(/\n+/g, '. ');
 };
 
+const renderInline = (text: string) => {
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g);
+  return parts.map((part, pIdx) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return (
+        <strong key={pIdx} className="font-bold text-[#F5F7F5]">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    if (part.startsWith('*') && part.endsWith('*')) {
+      return (
+        <em key={pIdx} className="text-[#8F9691] not-italic text-[11px] font-mono">
+          {part.slice(1, -1)}
+        </em>
+      );
+    }
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return (
+        <code key={pIdx} className="px-1.5 py-0.5 rounded bg-[#111312] text-[#C9FF3D] font-mono text-[11px] border border-[#292D2B]">
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+    return <span key={pIdx}>{part}</span>;
+  });
+};
+
 const renderFormattedText = (rawText: string) => {
   if (!rawText) return null;
+  const elements: React.ReactNode[] = [];
   const lines = rawText.split('\n');
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      elements.push(<div key={`space-${i}`} className="h-1" />);
+      i++;
+      continue;
+    }
+
+    // Fenced Code Block
+    if (trimmed.startsWith('```')) {
+      const lang = trimmed.slice(3).trim();
+      const codeLines: string[] = [];
+      i++;
+      while (i < lines.length && !lines[i].trim().startsWith('```')) {
+        codeLines.push(lines[i]);
+        i++;
+      }
+      if (i < lines.length && lines[i].trim().startsWith('```')) {
+        i++;
+      }
+      elements.push(
+        <div key={`code-${i}`} className="my-2 rounded-lg bg-[#0A0C0B] border border-[#232724] overflow-hidden shadow-inner">
+          {lang && (
+            <div className="flex items-center justify-between px-3 py-1 bg-[#131614] border-b border-[#232724] text-[10px] font-mono text-[#8F9691] uppercase tracking-wider">
+              <span>{lang}</span>
+              <span className="text-[9px] text-[#555E57]">verified snippet</span>
+            </div>
+          )}
+          <pre className="p-3 font-mono text-[11px] leading-relaxed text-[#D2EBD4] overflow-x-auto whitespace-pre">
+            <code>{codeLines.join('\n')}</code>
+          </pre>
+        </div>
+      );
+      continue;
+    }
+
+    // Markdown Headings
+    if (trimmed.startsWith('#')) {
+      const level = trimmed.match(/^#+/)?.[0].length || 1;
+      const title = trimmed.replace(/^#+\s*/, '');
+      const headerClass = level <= 3
+        ? "font-mono font-bold text-[#C9FF3D] text-xs pt-2 pb-0.5 tracking-wide border-b border-[#232724]/60"
+        : "font-mono font-bold text-[#A6E22E] text-xs pt-1.5 pb-0.5";
+      elements.push(
+        <h4 key={`h-${i}`} className={headerClass}>
+          {title}
+        </h4>
+      );
+      i++;
+      continue;
+    }
+
+    // Bullets & Numbered lists
+    const isBullet = trimmed.startsWith('•') || trimmed.startsWith('- ') || trimmed.startsWith('* ');
+    const isNumbered = /^\d+\.\s+/.test(trimmed);
+
+    if (isBullet || isNumbered) {
+      const marker = isBullet ? '•' : trimmed.match(/^\d+\./)?.[0];
+      const cleanContent = isBullet
+        ? trimmed.replace(/^[•\-\*]\s*/, '')
+        : trimmed.replace(/^\d+\.\s*/, '');
+
+      elements.push(
+        <div key={`item-${i}`} className="flex items-start space-x-2 pl-1.5 py-0.5">
+          <span className="text-[#C9FF3D] font-mono font-bold text-xs mt-0.5 shrink-0">{marker}</span>
+          <div className="flex-1 text-[#E0E5E1]">{renderInline(cleanContent)}</div>
+        </div>
+      );
+      i++;
+      continue;
+    }
+
+    // Normal paragraph
+    elements.push(
+      <p key={`p-${i}`} className="text-[#E0E5E1] leading-relaxed">
+        {renderInline(line)}
+      </p>
+    );
+    i++;
+  }
 
   return (
     <div className="space-y-1.5 font-sans leading-relaxed text-xs">
-      {lines.map((line, lIdx) => {
-        const trimmed = line.trim();
-        if (!trimmed) return <div key={lIdx} className="h-1" />;
-
-        if (trimmed.startsWith('###')) {
-          const title = trimmed.replace(/^#+\s*/, '');
-          return (
-            <h4 key={lIdx} className="font-mono font-bold text-[#C9FF3D] text-xs pt-1 pb-0.5 tracking-wide">
-              {title}
-            </h4>
-          );
-        }
-
-        const isBullet = trimmed.startsWith('•') || trimmed.startsWith('- ') || trimmed.startsWith('* ');
-        const cleanContent = isBullet ? trimmed.replace(/^[•\-\*]\s*/, '') : trimmed;
-
-        const parts = cleanContent.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g);
-
-        const renderedLine = parts.map((part, pIdx) => {
-          if (part.startsWith('**') && part.endsWith('**')) {
-            return (
-              <strong key={pIdx} className="font-bold text-[#F5F7F5]">
-                {part.slice(2, -2)}
-              </strong>
-            );
-          }
-          if (part.startsWith('*') && part.endsWith('*')) {
-            return (
-              <em key={pIdx} className="text-[#8F9691] not-italic text-[11px] font-mono">
-                {part.slice(1, -1)}
-              </em>
-            );
-          }
-          if (part.startsWith('`') && part.endsWith('`')) {
-            return (
-              <code key={pIdx} className="px-1.5 py-0.5 rounded bg-[#111312] text-[#C9FF3D] font-mono text-[11px] border border-[#292D2B]">
-                {part.slice(1, -1)}
-              </code>
-            );
-          }
-          return <span key={pIdx}>{part}</span>;
-        });
-
-        if (isBullet) {
-          return (
-            <div key={lIdx} className="flex items-start space-x-2 pl-1">
-              <span className="text-[#C9FF3D] font-bold text-xs mt-0.5">•</span>
-              <div className="flex-1">{renderedLine}</div>
-            </div>
-          );
-        }
-
-        return <p key={lIdx}>{renderedLine}</p>;
-      })}
+      {elements}
     </div>
   );
 };
+
+export interface ArtifactInfo {
+  artifactType: 'PDF' | 'EXCEL' | 'IMAGE' | 'DOCX';
+  fileName: string;
+  downloadUrl: string;
+  fileSize: string;
+  title?: string;
+}
+
+export interface ChatMessage {
+  sender: 'user' | 'nexus';
+  text: string;
+  confidence?: number;
+  citations?: string[];
+  artifact?: ArtifactInfo;
+}
+
+const CHAT_STORAGE_KEY = 'nexus_chat_terminal_history';
 
 export const ChatBoxTerminal: React.FC<ChatBoxTerminalProps> = ({
   onOpenUpload,
   onOpenEvidence
 }) => {
-  const [messages, setMessages] = useState<Array<{ sender: 'user' | 'nexus'; text: string; confidence?: number; citations?: string[] }>>([
-    {
-      sender: 'nexus',
-      text: "I've initialized the multi-agent document intelligence graph.\n\nAsk me any question via text or voice about your uploaded files, cross-document discrepancies, extracted facts, or compliance parameters.",
-      confidence: 96.5,
-      citations: []
-    }
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    try {
+      const saved = sessionStorage.getItem(CHAT_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return [
+      {
+        sender: 'nexus',
+        text: "I've initialized the multi-agent document intelligence graph.\n\nAsk me any question via text or voice about your uploaded files, cross-document discrepancies, extracted facts, or compliance parameters.",
+        confidence: 96.5,
+        citations: []
+      }
+    ];
+  });
+
+  // Persist conversation so screen lock / tab blur does not reset chat history
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+    } catch {}
+  }, [messages]);
   const [inputValue, setInputValue] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   
@@ -124,6 +224,101 @@ export const ChatBoxTerminal: React.FC<ChatBoxTerminalProps> = ({
   // Voice Output (Speech Synthesis) State
   const [autoVoiceReply, setAutoVoiceReply] = useState(false);
   const [speakingMsgIdx, setSpeakingMsgIdx] = useState<number | null>(null);
+  const [generatingArtifactIdx, setGeneratingArtifactIdx] = useState<{ idx: number; type: string } | null>(null);
+
+  const handleGenerateAndDownload = async (msgIdx: number, type: 'pdf' | 'excel' | 'diagram' | 'docx') => {
+    const msg = messages[msgIdx];
+    if (!msg || msg.sender !== 'nexus') return;
+
+    setGeneratingArtifactIdx({ idx: msgIdx, type });
+    try {
+      let payload: any = {};
+      const answer = msg.text;
+      const firstHeading = answer.match(/^#+\s*(.+)$/m)?.[1] || 'Technical Analysis Dossier';
+
+      if (type === 'pdf') {
+        const codeSnippets: any[] = [];
+        const codeRegex = /```(\w+)?\n([\s\S]*?)```/g;
+        let match;
+        while ((match = codeRegex.exec(answer)) !== null) {
+          codeSnippets.push({
+            language: match[1] || 'code',
+            code: match[2].trim(),
+            title: `Verified ${match[1] ? match[1].toUpperCase() : 'Code'} Implementation`
+          });
+        }
+        const cleanAnswer = answer.replace(/```[\s\S]*?```/g, '');
+        const rawSections = cleanAnswer.split(/###?\s+/).filter(s => s.trim().length > 0);
+        const sections = rawSections.map(s => {
+          const lines = s.split('\n');
+          return { title: lines[0].trim(), content: lines.slice(1).join('\n').trim() };
+        });
+
+        payload = {
+          title: firstHeading,
+          subtitle: 'NEXUS AI Grounded Intelligence Dossier',
+          sections: sections.length > 0 ? sections : [{ title: 'Analysis', content: answer }],
+          code_snippets: codeSnippets,
+          citations: msg.citations || [],
+          filename: `NEXUS_${firstHeading.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 25)}_${Date.now()}.pdf`
+        };
+      } else if (type === 'excel') {
+        const lines = answer.split('\n').filter(l => l.trim().length > 0);
+        const rows = lines.map((l, i) => ({
+          item_number: i + 1,
+          section_or_content: l.replace(/^#+\s*/, '').replace(/^[•\-\*]\s*/, '').slice(0, 180),
+          citation_source: (msg.citations && msg.citations[0]) || 'Verified Courseware'
+        }));
+        payload = {
+          title: firstHeading.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 25),
+          sheets_data: { 'Intelligence_Summary': rows },
+          filename: `NEXUS_Ledger_${Date.now()}.xlsx`
+        };
+      } else if (type === 'diagram') {
+        let topic = 'system';
+        const aLower = answer.toLowerCase();
+        if (aLower.includes('servlet') || aLower.includes('serverlet')) topic = 'servlet';
+        else if (aLower.includes('react') || aLower.includes('props')) topic = 'react';
+        else if (aLower.includes('http')) topic = 'http';
+        else if (aLower.includes('xml')) topic = 'xml';
+
+        payload = {
+          topic,
+          title: `${topic.toUpperCase()} Architecture & Lifecycle Diagram`,
+          filename: `${topic}_architecture_${Date.now()}.png`
+        };
+      } else if (type === 'docx') {
+        payload = {
+          title: firstHeading,
+          subtitle: 'NEXUS AI Grounded Intelligence Dossier',
+          sections: [{ title: 'Technical Analysis', content: answer }],
+          filename: `NEXUS_Report_${Date.now()}.docx`
+        };
+      }
+
+      const artifact = await nexusApi.generateArtifact(type, payload);
+      if (artifact && artifact.downloadUrl) {
+        setMessages(prev => {
+          const updated = [...prev];
+          updated[msgIdx] = { ...updated[msgIdx], artifact };
+          return updated;
+        });
+
+        const link = document.createElement('a');
+        link.href = getArtifactUrl(artifact.downloadUrl);
+        link.download = artifact.fileName;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (err: any) {
+      console.warn('[GENERATE_ERROR]', err);
+      alert(`Generation notice: ${err.message || 'Please check service'}`);
+    } finally {
+      setGeneratingArtifactIdx(null);
+    }
+  };
 
   // Active Tag Filter
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
@@ -261,11 +456,12 @@ export const ChatBoxTerminal: React.FC<ChatBoxTerminalProps> = ({
         setSuggestedPrompts(response.suggestedFollowUps);
       }
 
-      const newMsg = {
-        sender: 'nexus' as const,
+      const newMsg: ChatMessage = {
+        sender: 'nexus',
         text: response.answer || 'Query evaluated against verified fact ledger.',
         confidence: Math.round((response.confidence || 0.95) * 1000) / 10,
-        citations: citations.length > 0 ? citations : undefined
+        citations: citations.length > 0 ? citations : undefined,
+        artifact: response.artifact || undefined
       };
 
       setMessages(prev => {
@@ -319,6 +515,26 @@ export const ChatBoxTerminal: React.FC<ChatBoxTerminalProps> = ({
 
         {/* Action Controls: Voice Reply Toggle + Upload Button */}
         <div className="flex items-center space-x-2 self-start sm:self-auto">
+          {/* Clear Chat Button */}
+          <button
+            type="button"
+            onClick={() => {
+              sessionStorage.removeItem(CHAT_STORAGE_KEY);
+              setMessages([
+                {
+                  sender: 'nexus',
+                  text: "I've initialized the multi-agent document intelligence graph.\n\nAsk me any question via text or voice about your uploaded files, cross-document discrepancies, extracted facts, or compliance parameters.",
+                  confidence: 96.5,
+                  citations: []
+                }
+              ]);
+            }}
+            className="p-1.5 rounded-xl border border-[#292D2B] bg-[#171A18] text-[#8F9691] hover:text-rose-400 hover:border-rose-400/40 transition-colors cursor-pointer"
+            title="Clear chat history and reset terminal"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+
           {/* Auto Voice Reply Toggle */}
           <button
             type="button"
@@ -397,14 +613,14 @@ export const ChatBoxTerminal: React.FC<ChatBoxTerminalProps> = ({
       </div>
 
       {/* Message History Area */}
-      <div className="flex-1 space-y-3.5 overflow-y-auto max-h-60 pr-1 my-2 scrollbar-thin scrollbar-thumb-[#292D2B]">
+      <div className="flex-1 space-y-3.5 overflow-y-auto max-h-[520px] pr-1 my-2 scrollbar-thin scrollbar-thumb-[#292D2B]">
         {messages.map((m, idx) => (
           <div
             key={idx}
             className={`flex flex-col ${m.sender === 'user' ? 'items-end' : 'items-start'}`}
           >
             <div
-              className={`p-3.5 rounded-2xl max-w-lg text-xs leading-relaxed ${
+              className={`p-3.5 rounded-2xl max-w-2xl text-xs leading-relaxed ${
                 m.sender === 'user'
                   ? 'bg-[#C9FF3D]/15 text-[#F5F7F5] border border-[#C9FF3D]/30 rounded-tr-none'
                   : 'bg-[#171A18] text-[#F5F7F5] border border-[#292D2B] rounded-tl-none space-y-2'
@@ -435,6 +651,119 @@ export const ChatBoxTerminal: React.FC<ChatBoxTerminalProps> = ({
                   </button>
                 )}
               </div>
+
+              {/* Generated Production Artifact (PDF, Excel, Diagram, Word) */}
+              {m.artifact && (
+                <div className="pt-2 mt-2 border-t border-[#292D2B]/80 flex flex-col gap-2">
+                  {m.artifact.artifactType === 'IMAGE' && (
+                    <div className="rounded-xl overflow-hidden border border-[#292D2B] bg-[#0A0C0B] shadow-lg">
+                      <div className="px-3 py-1.5 bg-[#131614] border-b border-[#292D2B] flex items-center justify-between text-[10px] font-mono text-[#8F9691]">
+                        <span>Generated Architecture Diagram</span>
+                        <span className="text-[#C9FF3D] font-bold">150 DPI High-Res</span>
+                      </div>
+                      <img
+                        src={getArtifactUrl(m.artifact.downloadUrl)}
+                        alt={m.artifact.fileName}
+                        className="w-full h-auto object-contain max-h-[380px] p-1.5"
+                      />
+                    </div>
+                  )}
+
+                  <div className="p-3 rounded-xl bg-[#111412] border border-[#C9FF3D]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-sm">
+                    <div className="flex items-center space-x-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-[#C9FF3D]/10 border border-[#C9FF3D]/30 flex items-center justify-center text-[#C9FF3D] shrink-0">
+                        {m.artifact.artifactType === 'PDF' && <FileText className="w-4 h-4 text-emerald-400" />}
+                        {m.artifact.artifactType === 'EXCEL' && <FileSpreadsheet className="w-4 h-4 text-green-400" />}
+                        {m.artifact.artifactType === 'IMAGE' && <Boxes className="w-4 h-4 text-cyan-400" />}
+                        {m.artifact.artifactType === 'DOCX' && <FileText className="w-4 h-4 text-blue-400" />}
+                      </div>
+                      <div>
+                        <div className="text-xs font-mono font-bold text-[#F5F7F5] flex items-center space-x-1.5">
+                          <span>{m.artifact.fileName}</span>
+                          <span className="px-1.5 py-0.2 rounded bg-[#C9FF3D]/15 text-[#C9FF3D] text-[9px] font-bold uppercase">
+                            {m.artifact.artifactType}
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-[#8F9691]">
+                          Verified generated artifact &bull; {m.artifact.fileSize}
+                        </div>
+                      </div>
+                    </div>
+
+                    <a
+                      href={getArtifactUrl(m.artifact.downloadUrl)}
+                      download={m.artifact.fileName}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3 py-1.5 rounded-lg bg-[#C9FF3D] text-[#0D0F0E] hover:bg-[#d8ff66] text-xs font-mono font-bold transition-all flex items-center justify-center space-x-1.5 shadow-sm cursor-pointer shrink-0"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download {m.artifact.artifactType}</span>
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* On-Demand Document Export Bar */}
+              {m.sender === 'nexus' && (
+                <div className="pt-2 mt-2 border-t border-[#292D2B]/60 flex flex-wrap items-center justify-between gap-1.5 text-[10px] font-mono">
+                  <div className="flex items-center space-x-1 text-[#8F9691]">
+                    <Sparkles className="w-3 h-3 text-[#C9FF3D]" />
+                    <span>Export format:</span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <button
+                      onClick={() => handleGenerateAndDownload(idx, 'pdf')}
+                      disabled={generatingArtifactIdx?.idx === idx}
+                      className="px-2 py-0.5 rounded bg-[#111312] text-rose-300 hover:bg-rose-500/20 border border-[#292D2B] hover:border-rose-400/50 transition-colors flex items-center space-x-1 cursor-pointer disabled:opacity-50"
+                      title="Download as PDF Document"
+                    >
+                      <FileText className="w-3 h-3 text-rose-400" />
+                      <span>{generatingArtifactIdx?.idx === idx && generatingArtifactIdx?.type === 'pdf' ? 'Generating...' : 'PDF'}</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleGenerateAndDownload(idx, 'excel')}
+                      disabled={generatingArtifactIdx?.idx === idx}
+                      className="px-2 py-0.5 rounded bg-[#111312] text-emerald-300 hover:bg-emerald-500/20 border border-[#292D2B] hover:border-emerald-400/50 transition-colors flex items-center space-x-1 cursor-pointer disabled:opacity-50"
+                      title="Download as Excel Spreadsheet (.xlsx)"
+                    >
+                      <FileSpreadsheet className="w-3 h-3 text-emerald-400" />
+                      <span>{generatingArtifactIdx?.idx === idx && generatingArtifactIdx?.type === 'excel' ? 'Generating...' : 'Excel'}</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleGenerateAndDownload(idx, 'docx')}
+                      disabled={generatingArtifactIdx?.idx === idx}
+                      className="px-2 py-0.5 rounded bg-[#111312] text-blue-300 hover:bg-blue-500/20 border border-[#292D2B] hover:border-blue-400/50 transition-colors flex items-center space-x-1 cursor-pointer disabled:opacity-50"
+                      title="Download as Word Document (.docx)"
+                    >
+                      <FileText className="w-3 h-3 text-blue-400" />
+                      <span>{generatingArtifactIdx?.idx === idx && generatingArtifactIdx?.type === 'docx' ? 'Generating...' : 'Word'}</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleGenerateAndDownload(idx, 'diagram')}
+                      disabled={generatingArtifactIdx?.idx === idx}
+                      className="px-2 py-0.5 rounded bg-[#111312] text-cyan-300 hover:bg-cyan-500/20 border border-[#292D2B] hover:border-cyan-400/50 transition-colors flex items-center space-x-1 cursor-pointer disabled:opacity-50"
+                      title="Generate 150 DPI Architecture Diagram"
+                    >
+                      <Boxes className="w-3 h-3 text-cyan-400" />
+                      <span>{generatingArtifactIdx?.idx === idx && generatingArtifactIdx?.type === 'diagram' ? 'Generating...' : 'Diagram'}</span>
+                    </button>
+
+                    <button
+                      onClick={() => window.print()}
+                      className="px-2 py-0.5 rounded bg-[#111312] text-[#8F9691] hover:text-[#C9FF3D] border border-[#292D2B] hover:border-[#C9FF3D]/40 transition-colors flex items-center space-x-1 cursor-pointer"
+                      title="Print or Save Document"
+                    >
+                      <Printer className="w-3 h-3" />
+                      <span>Print</span>
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Citations & Evidence Pill Links */}
               {m.citations && (

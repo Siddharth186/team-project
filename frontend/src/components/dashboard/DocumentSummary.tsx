@@ -17,12 +17,14 @@ import { nexusData } from '../../data/demoData';
 interface DocumentSummaryProps {
   documents?: any[];
   onViewAll: () => void;
+  onClearAll?: () => void;
   onSelectDocument: (doc: any) => void;
 }
 
 export const DocumentSummary: React.FC<DocumentSummaryProps> = ({
   documents,
   onViewAll,
+  onClearAll,
   onSelectDocument
 }) => {
   const [isSyncing, setIsSyncing] = React.useState(false);
@@ -126,6 +128,17 @@ export const DocumentSummary: React.FC<DocumentSummaryProps> = ({
             <span>{isSyncing ? 'Syncing...' : 'Live Sync'}</span>
           </button>
 
+          {totalCount > 0 && onClearAll && (
+            <button
+              type="button"
+              onClick={onClearAll}
+              className="text-[10px] font-mono text-[#FF7777] hover:text-white px-2.5 py-1 rounded-full border border-[#FF7777]/40 hover:bg-[#FF7777]/20 transition-all cursor-pointer"
+              title="Clear all test/uploaded documents"
+            >
+              Clear All ({totalCount})
+            </button>
+          )}
+
           <button
             onClick={onViewAll}
             className="text-xs font-mono text-[#8F9691] hover:text-[#C9FF3D] flex items-center space-x-1 transition-colors group cursor-pointer"
@@ -167,11 +180,16 @@ export const DocumentSummary: React.FC<DocumentSummaryProps> = ({
         </div>
 
         {visibleFiles.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-10 text-center space-y-2 text-[#8F9691] rounded-2xl bg-[#111312]/40 border border-dashed border-[#292D2B]">
-            <FileText className="w-8 h-8 text-[#8F9691]/40 mb-1" />
-            <p className="text-xs font-mono text-[#F5F7F5]">No documents uploaded yet</p>
+          <div 
+            onClick={onViewAll}
+            className="flex flex-col items-center justify-center py-10 text-center space-y-2 text-[#8F9691] rounded-2xl bg-[#111312]/40 border-2 border-dashed border-[#292D2B] hover:border-[#C9FF3D]/60 hover:bg-[#171A18] transition-all cursor-pointer group"
+          >
+            <div className="w-10 h-10 rounded-2xl bg-[#C9FF3D]/10 border border-[#C9FF3D]/30 flex items-center justify-center mb-1 text-[#C9FF3D] group-hover:scale-110 transition-transform">
+              <Plus className="w-5 h-5" />
+            </div>
+            <p className="text-xs font-mono font-bold text-[#F5F7F5] group-hover:text-[#C9FF3D] transition-colors">No documents uploaded yet</p>
             <p className="text-[11px] font-sans text-[#8F9691] max-w-xs">
-              Upload files using the "Upload Document" button to analyze and extract intelligence.
+              Click here or "Upload more →" to browse and upload your files (PDF, DOCX, XLSX, Images).
             </p>
           </div>
         ) : (

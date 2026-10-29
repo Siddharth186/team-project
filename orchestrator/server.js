@@ -3,6 +3,7 @@
  * Handles reasoning, Q&A, dashboard metrics, evidence routing, and decision reporting.
  */
 
+import './polyfill.js';
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -37,6 +38,12 @@ const PORT = process.env.ORCHESTRATOR_PORT || (process.env.PORT === '8000' ? 500
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+const generatedDir = path.join(__dirname, 'public', 'generated');
+if (!fs.existsSync(generatedDir)) {
+  fs.mkdirSync(generatedDir, { recursive: true });
+}
+app.use(['/api/generated', '/generated'], express.static(generatedDir));
 
 // Seed defaults
 const seedData = {
@@ -256,7 +263,7 @@ app.post('/api/documents/upload', async (req, res) => {
     ...r.document,
     batchId,
     batchName,
-    status: 'PROCESSED',
+    status: (Array.isArray(req.body?.filenames) && !req.body?.documents && !req.body?.files) ? 'PROCESSING' : 'PROCESSED',
     processingProgress: 100
   }));
   sessionData.documents.push(...createdDocs);
@@ -395,7 +402,7 @@ app.get('/api/batches', (req, res) => {
         documents: [],
         totalFiles: 0,
         totalSize: 0,
-        status: 'PROCESSED',
+        status: (Array.isArray(req.body?.filenames) && !req.body?.documents && !req.body?.files) ? 'PROCESSING' : 'PROCESSED',
         findingsCount: 0
       });
     }
@@ -690,6 +697,22 @@ app.get('/api/report/markdown', (req, res) => {
   const report = reportGenerator.generateReport({ documentId, batchId, targetType });
   const md = reportGenerator.generateMarkdown(report);
   res.type('text/markdown').send(md);
+});
+
+// Universal Document Generation Proxy
+app.post('/api/generate/:type', async (req, res) => {
+  const type = req.params.type;
+  try {
+    const upstream = await fetch(`http://127.0.0.1:8000/api/v1/generate/${type}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req.body)
+    });
+    const data = await upstream.json();
+    res.status(upstream.status).json(data);
+  } catch (err) {
+    res.status(500).json({ error: 'Document engine artifact generation failed: ' + err.message });
+  }
 });
 
 // 11. Reset to initial demo case

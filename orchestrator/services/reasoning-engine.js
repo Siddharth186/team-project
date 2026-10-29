@@ -7,7 +7,7 @@
  * 3. Intent-Specific Answering: Format direct responses matching user intent (Comparison, List, Numerical, Why/How, Fact).
  * 4. Conversational Follow-Up: Resolve anaphoric pronouns ("its", "he", "they", "this") using conversation history.
  * 5. Strict Source Grounding: Answers grounded exclusively in uploaded evidence with Document & Page citations.
- * 6. Anti-Hallucination Guardrail: If evidence is absent, state "I couldn't find this information in the uploaded files."
+ * 6. Anti-Hallucination Guardrail: If evidence is absent, state "not available in the uploaded documents." (or "I couldn't find this information in the uploaded files.")
  */
 
 import {
@@ -371,7 +371,7 @@ SYSTEM RULES:
 5. If the intent is LIST or BULLETS, return concise, well-structured bullet points.
 6. If the intent is NUMERICAL, state the exact verified number/amount upfront.
 7. If the answer CANNOT be found in the provided facts or excerpts, you MUST EXPLICITLY STATE:
-   "I couldn't find this information in the uploaded files."
+   "not available in the uploaded documents." (or "I couldn't find this information in the uploaded files.")
    DO NOT guess or invent facts.
 
 ACTIVE EVIDENCE BASE:
@@ -488,7 +488,7 @@ Provide a direct, grounded, and fully cited answer in Markdown format.`;
     return {
       query: rawQuery,
       intent,
-      answer: `I couldn't find this information in the uploaded files.\n\n*NEXUS AI reasoning is strictly grounded in verified facts across your uploaded documents and does not hallucinate unverified data.*`,
+      answer: `This information is not available in the uploaded documents (couldn't find sufficient verified facts).\n\n*NEXUS AI reasoning is strictly grounded in verified facts across your uploaded documents and does not hallucinate unverified data.*`,
       confidence: 1.0,
       citedFacts: [],
       citedEvidence: [],

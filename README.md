@@ -13,7 +13,7 @@ An enterprise-grade, multi-agent AI forensic document analysis platform designed
   - **Forensic Report Generator:** 1-Page minimal executive summaries & detailed PDF forensic briefs with voice narration.
   - **Voice-Enabled Terminal:** Integrated Speech-to-Text (Voice Query) & Text-to-Speech (Voice Assistant) in the terminal interface.
 - **Privacy-First Local AI Support:**
-  - Full local inference compatibility powered by **Ollama (`llama3.2` / `mistral` / `phi3`)** alongside optional cloud providers.
+  - Full local inference compatibility powered by **Ollama (`qwen3.5:9b` / `qwen3.5:4b` / `gpt-oss:20b`)** alongside dedicated embeddings (`nomic-embed-text`) and optional cloud providers.
 ---
 ## 🏗️ System Architecture
 
@@ -56,7 +56,7 @@ An enterprise-grade, multi-agent AI forensic document analysis platform designed
 - **Node.js**: v18.0+ or v20.0+
 - **npm** or **pnpm**
 - **Git**
-- *(Optional for offline AI)*: [Ollama](https://ollama.com/) with `llama3.2` pulled (`ollama pull llama3.2`)
+- *(Optional for offline AI)*: [Ollama](https://ollama.com/) with `qwen3.5:9b` pulled (`ollama pull qwen3.5:9b`) and embeddings (`ollama pull nomic-embed-text`)
 ---
 ### 1. Clone the Repository
 ```bash
@@ -86,7 +86,10 @@ FRONTEND_PORT=3000
 # AI / LLM Configuration
 USE_LOCAL_LLM=true
 OLLAMA_HOST=http://localhost:11434
-OLLAMA_MODEL=llama3.2
+OLLAMA_MODEL=qwen3.5:9b
+OLLAMA_FALLBACK_MODEL=qwen3.5:4b
+OLLAMA_EMBEDDING_MODEL=nomic-embed-text
+OLLAMA_NUM_CTX=16384
 # Optional Cloud API Fallback
 OPENAI_API_KEY=your_openai_api_key_here
 

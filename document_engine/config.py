@@ -22,8 +22,12 @@ class Settings(BaseModel):
     OPENAI_API_KEY: str = Field(default_factory=lambda: os.getenv("OPENAI_API_KEY", ""))
     OPENAI_MODEL: str = Field(default_factory=lambda: os.getenv("OPENAI_MODEL", "gpt-4o-mini"))
     OPENAI_BASE_URL: str = Field(default_factory=lambda: os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"))
-    OLLAMA_BASE_URL: str = Field(default_factory=lambda: os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"))
-    OLLAMA_MODEL: str = Field(default_factory=lambda: os.getenv("OLLAMA_MODEL", "llama3"))
+    
+    # Local Ollama Settings (supports aliases: OLLAMA_HOST and OLLAMA_PRIMARY_MODEL)
+    OLLAMA_BASE_URL: str = Field(default_factory=lambda: os.getenv("OLLAMA_BASE_URL", os.getenv("OLLAMA_HOST", "http://localhost:11434")))
+    OLLAMA_MODEL: str = Field(default_factory=lambda: os.getenv("OLLAMA_MODEL", os.getenv("OLLAMA_PRIMARY_MODEL", "qwen2.5:3b")))
+    OLLAMA_NUM_CTX: int = Field(default_factory=lambda: int(os.getenv("OLLAMA_NUM_CTX", "16384")))
+    OLLAMA_TEMP_EXTRACTION: float = Field(default_factory=lambda: float(os.getenv("OLLAMA_TEMP_EXTRACTION", "0.1")))
     
     # OCR Settings
     OCR_PROVIDER: str = Field(default_factory=lambda: os.getenv("OCR_PROVIDER", "auto")) # auto, winrt, tesseract, mock

@@ -326,15 +326,34 @@ export const AntigravityScene: React.FC<AntigravitySceneProps> = ({ isProcessing
         }
       }
 
-      renderer.render(scene, camera);
+      try {
+        renderer.render(scene, camera);
+      } catch {
+        // Suppress transient render errors when GPU is locked or restored
+      }
       animationFrameId = requestAnimationFrame(animate);
     };
+
+    // Handle Windows screen lock / GPU context loss safely
+    const handleContextLost = (event: Event) => {
+      event.preventDefault();
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+    };
+
+    const handleContextRestored = () => {
+      animate();
+    };
+
+    renderer.domElement.addEventListener('webglcontextlost', handleContextLost, false);
+    renderer.domElement.addEventListener('webglcontextrestored', handleContextRestored, false);
 
     animate();
 
     return () => {
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('resize', onResize);
+      renderer.domElement.removeEventListener('webglcontextlost', handleContextLost);
+      renderer.domElement.removeEventListener('webglcontextrestored', handleContextRestored);
       cancelAnimationFrame(animationFrameId);
 
       // Dispose three.js resources
